@@ -25,21 +25,23 @@ export default function Home() {
       {/* HEADER */}
       <header className="relative flex flex-col items-center justify-center text-center my-10">
         {/* LOGIN/LOGOUT BOX */}
-        <div className="absolute top-0 right-0 p-6">
-          <div className="relative bg-white rounded-xl shadow-xl border-4 border-[#ce1126] border-b-green-600 border-r-green-600 px-6 py-4 transform rotate-[-1.5deg]">
+        <div className="w-full flex justify-center [@media(min-width:1500px)]:justify-end [@media(min-width:1500px)]:absolute [@media(min-width:1500px)]:top-0 [@media(min-width:1500px)]:right-0 p-6 mt-6 [@media(min-width:1500px)]:mt-0 z-20">
+          <div className="relative bg-white rounded-xl shadow-xl border-4 border-[#ce1126] border-b-green-600 border-r-green-600 px-6 py-4 transform [@media(min-width:1500px)]:rotate-[-1.5deg] w-full max-w-sm">
             <div className="absolute -top-2 left-1/2 transform -translate-x-1/2 w-24 h-2 bg-yellow-400 rounded-full shadow-md" />
-            <div className="flex items-center gap-4 z-10 relative">
+            <div className="flex flex-col items-center gap-4 z-10 relative text-center">
               {status === "authenticated" ? (
                 <>
                   <img
                     src="/images/default-avatar-male.png"
                     alt="Avatar"
-                    className="w-20 h-20 rounded-full object-cover shadow-md border-2 border-green-600"
+                    className="w-20 h-20 rounded-full object-cover shadow-md border-2 border-green-600 transition-transform duration-200 hover:scale-105"
                   />
-                  <span className="font-semibold">{session.user.name}</span>
+                  <span className="font-semibold text-lg truncate max-w-[150px]">
+                    {session.user.name}
+                  </span>
                   <button
                     onClick={() => signOut()}
-                    className="bg-red-600 text-white px-4 py-2 rounded-md hover:bg-red-700 transition text-sm cursor-pointer"
+                    className="bg-red-600 text-white px-4 py-2 rounded-md hover:bg-red-700 transition text-sm cursor-pointer w-full [@media(min-width:1500px)]:w-auto"
                   >
                     Sign out
                   </button>
@@ -48,13 +50,13 @@ export default function Home() {
                 <>
                   <button
                     onClick={() => signIn()}
-                    className="bg-[#ce1126] text-white text-sm md:text-base font-bold px-5 py-2 rounded-md hover:bg-red-800 transition cursor-pointer shadow"
+                    className="bg-[#ce1126] text-white text-sm font-bold px-5 py-2 rounded-md hover:bg-red-800 transition cursor-pointer shadow w-full [@media(min-width:1500px)]:w-auto"
                   >
                     Log in
                   </button>
                   <button
                     onClick={() => signIn()}
-                    className="bg-green-700 text-white text-sm md:text-base font-bold px-5 py-2 rounded-md hover:bg-green-800 transition cursor-pointer shadow"
+                    className="bg-green-700 text-white text-sm font-bold px-5 py-2 rounded-md hover:bg-green-800 transition cursor-pointer shadow w-full [@media(min-width:1500px)]:w-auto"
                   >
                     Get started
                   </button>
@@ -64,7 +66,7 @@ export default function Home() {
           </div>
         </div>
 
-        <h1 className="aztec text-5xl md:text-7xl text-green-700">
+        <h1 className="aztec text-5xl xl:text-7xl text-green-700 mt-6">
           Mex Spanish Dict 💀
         </h1>
       </header>
