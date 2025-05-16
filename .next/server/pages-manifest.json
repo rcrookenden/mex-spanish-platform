@@ -2,7 +2,8 @@
   "/_app": "pages/_app.js",
   "/_error": "pages/_error.js",
   "/_document": "pages/_document.js",
-  "/": "pages/index.js",
   "/word/[slug]": "pages/word/[slug].js",
-  "/api/auth/[...nextauth]": "pages/api/auth/[...nextauth].js"
+  "/chunk/[slug]": "pages/chunk/[slug].js",
+  "/": "pages/index.js",
+  "/deck": "pages/deck.js"
 }

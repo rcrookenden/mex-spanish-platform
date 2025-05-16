@@ -25,6 +25,16 @@ globalThis.__BUILD_MANIFEST = {
       "static/chunks/main.js",
       "static/chunks/pages/_error.js"
     ],
+    "/chunk/[slug]": [
+      "static/chunks/webpack.js",
+      "static/chunks/main.js",
+      "static/chunks/pages/chunk/[slug].js"
+    ],
+    "/deck": [
+      "static/chunks/webpack.js",
+      "static/chunks/main.js",
+      "static/chunks/pages/deck.js"
+    ],
     "/word/[slug]": [
       "static/chunks/webpack.js",
       "static/chunks/main.js",

@@ -1,14 +1,25 @@
-import { useRouter } from "next/router";
-import chunkData from "../../data/chunks"; // adjust path if your chunks.js is elsewhere
-import TestChunkPage from "../../components/ChunkPage"; // or whatever you named your chunk component
+import ChunkPage from "../../components/ChunkPage";
+import chunks from "../../data/chunks";
 
-export default function ChunkSlugPage() {
-  const router = useRouter();
-  const { slug } = router.query;
+export async function getStaticPaths() {
+  const paths = chunks.map((chunk) => ({
+    params: { slug: chunk.slug }
+  }));
 
-  const chunk = chunkData.find((c) => c.slug === slug);
-
-  if (!chunk) return <p className="p-10 text-xl">Not found 😢</p>;
-
-  return <TestChunkPage chunkData={chunk} />;
+  return {
+    paths,
+    fallback: false
+  };
 }
+
+export async function getStaticProps({ params }) {
+  const chunkData = chunks.find((chunk) => chunk.slug === params.slug);
+
+  return {
+    props: {
+      chunkData
+    }
+  };
+}
+
+export default ChunkPage;

@@ -1,11 +1,27 @@
+import { useEffect, useState } from "react";
 import Head from "next/head";
 import words from "../data/words";
 import confetti from "canvas-confetti";
-import { signIn, signOut, useSession } from "next-auth/react";
+import { useSupabaseClient, useSession } from "@supabase/auth-helpers-react";
 
 export default function Home() {
+  const supabase = useSupabaseClient();
+  const session = useSession();
   const slugs = words.map((w) => w.slug.toLowerCase());
-  const { data: session, status } = useSession();
+  const [shake, setShake] = useState(false);
+
+  useEffect(() => {
+    const timeout = setTimeout(() => setShake(true), 10000);
+    return () => clearTimeout(timeout);
+  }, []);
+
+  const handleSignIn = async () => {
+    await supabase.auth.signInWithOAuth({ provider: "google" });
+  };
+
+  const handleSignOut = async () => {
+    await supabase.auth.signOut();
+  };
 
   return (
     <div className="min-h-screen bg-[#f7f7f7] text-gray-800 p-6">
@@ -19,17 +35,28 @@ export default function Home() {
           .aztec {
             font-family: 'Tilt Warp', cursive;
           }
+          @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            20%, 60% { transform: translateX(-5px); }
+            40%, 80% { transform: translateX(5px); }
+          }
+          .animate-shake {
+            animation: shake 0.5s ease-in-out infinite;
+          }
         `}</style>
       </Head>
 
       {/* HEADER */}
       <header className="relative flex flex-col items-center justify-center text-center my-10">
         {/* LOGIN/LOGOUT BOX */}
-        <div className="w-full flex justify-center [@media(min-width:1500px)]:justify-end [@media(min-width:1500px)]:absolute [@media(min-width:1500px)]:top-0 [@media(min-width:1500px)]:right-0 p-6 mt-6 [@media(min-width:1500px)]:mt-0 z-20">
-          <div className="relative bg-white rounded-xl shadow-xl border-4 border-[#ce1126] border-b-green-600 border-r-green-600 px-6 py-4 transform [@media(min-width:1500px)]:rotate-[-1.5deg] w-full max-w-sm">
-            <div className="absolute -top-2 left-1/2 transform -translate-x-1/2 w-24 h-2 bg-yellow-400 rounded-full shadow-md" />
+        <div className="relative w-full flex justify-center 2xl:justify-end 2xl:absolute 2xl:top-0 2xl:right-0 pt-2 pb-6 2xl:pt-0 2xl:pb-0 z-30 pointer-events-none">
+          <div className="relative bg-white rounded-xl shadow-xl border-4 border-[#ce1126] border-b-green-600 border-r-green-600 px-6 py-4 transform 2xl:rotate-[-1.5deg] w-full max-w-sm pointer-events-auto">
+            <div
+              className="absolute left-1/2 transform -translate-x-1/2 w-24 h-2 bg-yellow-400 rounded-full shadow-md"
+              style={{ top: "-7.5px" }}
+            />
             <div className="flex flex-col items-center gap-4 z-10 relative text-center">
-              {status === "authenticated" ? (
+              {session?.user ? (
                 <>
                   <img
                     src="/images/default-avatar-male.png"
@@ -37,11 +64,12 @@ export default function Home() {
                     className="w-20 h-20 rounded-full object-cover shadow-md border-2 border-green-600 transition-transform duration-200 hover:scale-105"
                   />
                   <span className="font-semibold text-lg truncate max-w-[150px]">
-                    {session.user.name}
+                    {(session.user.user_metadata?.full_name?.split(" ")[0]) ||
+                      session.user.email.split("@")[0]}
                   </span>
                   <button
-                    onClick={() => signOut()}
-                    className="bg-red-600 text-white px-4 py-2 rounded-md hover:bg-red-700 transition text-sm cursor-pointer w-full [@media(min-width:1500px)]:w-auto"
+                    onClick={handleSignOut}
+                    className="bg-red-600 text-white px-4 py-2 rounded-md hover:bg-red-700 transition text-sm cursor-pointer w-full 2xl:w-auto"
                   >
                     Sign out
                   </button>
@@ -49,14 +77,14 @@ export default function Home() {
               ) : (
                 <>
                   <button
-                    onClick={() => signIn()}
-                    className="bg-[#ce1126] text-white text-sm font-bold px-5 py-2 rounded-md hover:bg-red-800 transition cursor-pointer shadow w-full [@media(min-width:1500px)]:w-auto"
+                    onClick={handleSignIn}
+                    className="bg-[#ce1126] text-white text-sm font-bold px-5 py-2 rounded-md hover:bg-red-800 transition cursor-pointer shadow w-full 2xl:w-auto"
                   >
                     Log in
                   </button>
                   <button
-                    onClick={() => signIn()}
-                    className="bg-green-700 text-white text-sm font-bold px-5 py-2 rounded-md hover:bg-green-800 transition cursor-pointer shadow w-full [@media(min-width:1500px)]:w-auto"
+                    onClick={handleSignIn}
+                    className="bg-green-700 text-white text-sm font-bold px-5 py-2 rounded-md hover:bg-green-800 transition cursor-pointer shadow w-full 2xl:w-auto"
                   >
                     Get started
                   </button>
@@ -66,13 +94,13 @@ export default function Home() {
           </div>
         </div>
 
-        <h1 className="aztec text-5xl xl:text-7xl text-green-700 mt-6">
+        <h1 className="aztec text-5xl xl:text-7xl text-green-700 mt-10 md:mt-14">
           Mex Spanish Dict 💀
         </h1>
       </header>
 
       {/* SEARCH BAR */}
-      <div className="flex justify-center mb-8">
+      <div className="flex justify-center mb-8 z-0">
         <form
           onSubmit={(e) => {
             e.preventDefault();
@@ -111,7 +139,9 @@ export default function Home() {
               window.location.href = `/word/${encodeURIComponent(randomSlug)}`;
             }, 300);
           }}
-          className="bg-yellow-400 hover:bg-yellow-500 text-black font-bold py-4 px-8 rounded-full text-xl shadow-md transition"
+          className={`cursor-pointer bg-yellow-400 hover:bg-yellow-500 text-black font-bold py-4 px-8 rounded-full text-xl shadow-md transition transform ${
+            shake ? "animate-shake" : ""
+          }`}
         >
           🎲 Are you feeling lucky?
         </button>
@@ -119,9 +149,7 @@ export default function Home() {
 
       {/* FEATURED WORDS */}
       <section className="mb-16">
-        <h2 className="text-3xl font-bold text-center mb-12">
-          🔥 Featured Words
-        </h2>
+        <h2 className="text-3xl font-bold text-center mb-12">🔥 Featured Words</h2>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
           {["chela", "chido", "mande", "güey"].map((slug) => {
             const word = words.find((w) => w.slug === slug);
@@ -151,22 +179,22 @@ export default function Home() {
 
       {/* FEATURED CHUNKS */}
       <section className="mb-20">
-        <h2 className="text-3xl font-bold text-center mb-12">
-          ⚡ Featured Chunks
-        </h2>
+        <h2 className="text-3xl font-bold text-center mb-12">⚡ Featured Chunks</h2>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          <div className="bg-white p-6 rounded-xl shadow-md text-center">
-            ¡Qué onda!
-          </div>
-          <div className="bg-white p-6 rounded-xl shadow-md text-center">
-            No manches
-          </div>
-          <div className="bg-white p-6 rounded-xl shadow-md text-center">
-            Ya valió
-          </div>
-          <div className="bg-white p-6 rounded-xl shadow-md text-center">
-            Me cayó el veinte
-          </div>
+          {[
+            { slug: "se-me-hace-tarde", text: "Se me hace tarde" },
+            { slug: "por-eso", text: "Por eso" },
+            { slug: "que-tengas-buen-dia", text: "Que tengas buen día" },
+            { slug: "ya-me-voy", text: "Ya me voy" },
+          ].map(({ slug, text }) => (
+            <a
+              key={slug}
+              href={`/chunk/${slug}`}
+              className="bg-green-50 p-8 rounded-2xl shadow-2xl text-center hover:scale-105 hover:shadow-[0_0_15px_rgba(34,197,94,0.6)] transition-transform duration-300 transform flex items-center justify-center h-[420px] overflow-hidden"
+            >
+              <span className="text-3xl font-extrabold text-green-700">{text}</span>
+            </a>
+          ))}
         </div>
       </section>
 

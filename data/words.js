@@ -13,6 +13,10 @@ const words = [
       { spanish: "¿Nos lanzamos por unas chelas, wey?", english: "Wanna go grab some beers, dude?" },
       { spanish: "Se me antoja una chela bien muerta.", english: "I feel like an ice-cold beer." }
     ],
+    audioUrls: [
+      "https://example.com/audio/chela1.mp3",
+      "https://example.com/audio/chela2.mp3"
+    ],
     similarWords: ["chelear", "chelería", "chelero", "cheve"],
     usefulChunks: [
       { chunk: "echarse una chela", translation: "to have a beer" },
@@ -52,6 +56,10 @@ const words = [
       { spanish: "Qué chido está tu carro.", english: "Your car is so cool." },
       { spanish: "¡Estuvo chido el concierto!", english: "The concert was awesome!" }
     ],
+    audioUrls: [
+      "https://example.com/audio/chido1.mp3",
+      "https://example.com/audio/chido2.mp3"
+    ],
     similarWords: ["padre", "chingón", "perro", "cool"],
     usefulChunks: [
       { chunk: "estar chido", translation: "to be cool" },
@@ -59,7 +67,8 @@ const words = [
       { chunk: "bien / súper chido", translation: "really cool" }
     ],
     cartoonImage: "/images/chido.png",
-    notes: "'Chido' is an excellent way to describe anything awesome, cool, or great in Mexico!\n\nYou WILL also hear 'padre' a lot, though.\n\nThe difference?\n\nWell, ‘padre’ is a bit more old-school and family-friendly, while ‘chido’ is slangier and more popular with the younger crowd. 🤙",
+    notes:
+      "'Chido' is an excellent way to describe anything awesome, cool, or great in Mexico!\n\nYou WILL also hear 'padre' a lot, though.\n\nThe difference?\n\nWell, ‘padre’ is a bit more old-school and family-friendly, while ‘chido’ is slangier and more popular with the younger crowd. 🤙",
     conversation: [
       { spanish: "¿Te gustó la película?", english: "Did you like the movie?" },
       { spanish: "Sí, estuvo chido.", english: "Yeah, it was cool." }
@@ -82,7 +91,8 @@ const words = [
     slug: "mande",
     title: "¿Mande?",
     partOfSpeech: "interj",
-    meaning: "1. A polite way of saying 'Pardon?' or 'Sorry?' \n\n 2. Used to respond when someone calls your name, like 'Yeah?' or 'What?'",
+    meaning:
+      "1. A polite way of saying 'Pardon?' or 'Sorry?'\n\n 2. Used to respond when someone calls your name, like 'Yeah?' or 'What?'",
     tags: [
       { label: "Formal 💼", color: "bg-green-700 text-white" },
       { label: "A1 (¡Vas emepezando!)", color: "bg-yellow-400 text-black" },
@@ -92,13 +102,18 @@ const words = [
       { spanish: "¿Mande? No te escuché bien.", english: "Sorry? I didn’t catch that." },
       { spanish: "Mande, Má.", english: "What is it, Mom?" }
     ],
+    audioUrls: [
+      "https://example.com/audio/mande1.mp3",
+      "https://example.com/audio/mande2.mp3"
+    ],
     similarWords: ["¿Perdón?", "¿Cómo?", "¿Qué?"],
     usefulChunks: [
       { chunk: "¿Mande?", translation: "Pardon? / Sorry?" },
       { chunk: "¿Mande? ¡No te escucho! (cuando hablas por teléfono)", translation: "What was that? I can't hear you!" }
     ],
     cartoonImage: "/images/mande.png",
-    notes: "Sooooo, when you don’t understand something, what should you use: \n\n ¿Mande?’, ¿Cómo?’, or ‘¿Qué?’ \n\n You’ve just asked the million-dollar question, my Spanish-speaking friend. 😉 \n\n Here’s a super quick run-down: \n\n – ‘¿Mande?’ carries a more polite and deferential tone. It’s also more common among older generations. \n\n –	‘¿Cómo?’ is neutral and casual – perfect for pal-to-pal interactions and modern speech. It’s also VERY popular in urban areas. \n\n –	‘¿Qué?’ sounds just as abrupt as it does in English. Uh-oh!",
+    notes:
+      "Sooooo, when you don’t understand something, what should you use: \n\n ¿Mande?’, ¿Cómo?’, or ‘¿Qué?’ \n\n You’ve just asked the million-dollar question, my Spanish-speaking friend. 😉 \n\n Here’s a super quick run-down: \n\n – ‘¿Mande?’ carries a more polite and deferential tone. It’s also more common among older generations. \n\n –	‘¿Cómo?’ is neutral and casual – perfect for pal-to-pal interactions and modern speech. It’s also VERY popular in urban areas. \n\n –	‘¿Qué?’ sounds just as abrupt as it does in English. Uh-oh!",
     conversation: [
       { spanish: "¡Erika!", english: "Erika!" },
       { spanish: "Mande, Má.", english: "Yeah, Mom?" }
@@ -121,7 +136,8 @@ const words = [
     slug: "güey",
     title: "Güey / Wey",
     partOfSpeech: "nm",
-    meaning: "1. Dude / Bro / Mate (for you Brits!) / Guy \n\n 2. Idiot / Dummy / Idiot (in a playful or insulting way)",
+    meaning:
+      "1. Dude / Bro / Mate (for you Brits!) / Guy \n\n 2. Idiot / Dummy / Idiot (in a playful or insulting way)",
     tags: [
       { label: "Slang 💀", color: "bg-green-700 text-white" },
       { label: "A2 (¡Vas bien!)", color: "bg-yellow-400 text-black" },
@@ -132,6 +148,12 @@ const words = [
       { spanish: "¿Cómo estás, wey?", english: "How are you, bro?" },
       { spanish: "No seas güey, no se hace así.", english: "Don’t be an idiot, that's not how you do it." },
       { spanish: "¡Fíjate por dónde vas, wey! ¿Qué no sabes caminar?", english: "Watch where you’re going, idiot! Don’t you know how to walk?" }
+    ],
+    audioUrls: [
+      "https://example.com/audio/guey1.mp3",
+      "https://example.com/audio/guey2.mp3",
+      "https://example.com/audio/guey3.mp3",
+      "https://example.com/audio/guey4.mp3"
     ],
     similarWords: ["tipo", "vato", "bro", "morro", "carnal"],
     usefulChunks: [
@@ -147,7 +169,8 @@ const words = [
       { chunk: "¡No te hagas güey!", translation: "Don’t play dumb!" }
     ],
     cartoonImage: "/images/wey.png",
-    notes: "‘Wey’ is THE most used slang word in Mexican Spanish. Period. \n\n But what’s up with the two spellings? \n\n Well, ‘güey’ is the official version, according to the Royal Spanish Academy and the Mexican Academy of Language. \n\n It’s actually derived from ‘buey’ (an ox), which is why it can also mean dumb. I mean, oxen aren’t exactly known for their speed or wit. 😉 \n\n BUT in informal writing – texts, memes, social media, etc. – ‘wey’ is much more common.",
+    notes:
+      "‘Wey’ is THE most used slang word in Mexican Spanish. Period. \n\n But what’s up with the two spellings? \n\n Well, ‘güey’ is the official version, according to the Royal Spanish Academy and the Mexican Academy of Language. \n\n It’s actually derived from ‘buey’ (an ox), which is why it can also mean dumb. I mean, oxen aren’t exactly known for their speed or wit. 😉 \n\n BUT in informal writing – texts, memes, social media, etc. – ‘wey’ is much more common.",
     conversation: [
       { spanish: "¿Viste lo que hizo ese güey?", english: "Did you see what that dude did?" },
       { spanish: "Sí, no manches.", english: "Yeah, no way!" }
@@ -180,13 +203,18 @@ const words = [
       { spanish: "¿Neta? No te creo.", english: "For real? I don't believe you." },
       { spanish: "Te lo digo neta.", english: "I'm telling you the truth." }
     ],
+    audioUrls: [
+      "https://example.com/audio/neta1.mp3",
+      "https://example.com/audio/neta2.mp3"
+    ],
     similarWords: ["de verdad", "en serio", "la verdad"],
     usefulChunks: [
       { chunk: "¿neta?", translation: "really? / for real?" },
       { chunk: "la neta", translation: "the truth / honestly" }
     ],
     cartoonImage: "/images/neta.png",
-    notes: "'Neta' is a must-know word if you want to sound like a real chilango or anyone from Mexico.",
+    notes:
+      "'Neta' is a must-know word if you want to sound like a real chilango or anyone from Mexico.",
     conversation: [
       { spanish: "¿Ganó la lotería?", english: "He won the lottery?" },
       { spanish: "¡Sí, neta!", english: "Yeah, for real!" }
@@ -208,7 +236,3 @@ const words = [
 ];
 
 export default words;
-
-  
-  
-  
