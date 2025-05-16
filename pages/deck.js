@@ -52,7 +52,7 @@ export default function DeckPage() {
     };
 
     fetchDueCards();
-  }, [session]);
+  }, [session, supabase]);
 
   const handlePlayAudio = (url) => {
     if (!url) return;
@@ -142,7 +142,7 @@ export default function DeckPage() {
   if (dueCards.length === 0)
     return (
       <div className="min-h-screen flex justify-center items-center text-3xl" style={{ fontFamily: "Comic Sans MS, cursive, sans-serif" }}>
-        🎉 You're done for today!
+🎉 You&apos;re done for today!
       </div>
     );
 
