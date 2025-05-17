@@ -201,6 +201,75 @@ const chunks = [
       { label: "B1 (¡Ya le agarras la onda!)", color: "bg-yellow-400 text-black" },
       { label: "Used EVERYWHERE 🇲🇽", color: "bg-red-600 text-white" }
     ]
+  },
+  {
+    slug: "un-buen-de",
+    title: "Un buen de",
+    meaning: "Loads of / A bunch of",
+explanation:
+  "There are always colloquial variations of ‘lots of’.\n\nIn England, we say ‘loads of’.\n\nAussies LOVE ‘heaps of’.\n\nBut what about in Spanish?\n\nWell, in Spain and Argentina, you’ll often hear ‘un montón de’.\n\nBUT (and it’s a BIG but), that’s NOT the go-to phrase in Mexico.\n\nHere’s what Mexicans actually say:\n\n<strong>👉 un buen de = informal, but not vulgar</strong>\n<strong>👉 un chorro de = informal, also non-vulgar</strong>\n<strong>👉 un chingo de = vulgar, but super common</strong>",
+    examples: [
+      {
+        spanish: "Tiene un buen de amigos.",
+        english: "He’s got loads of friends."
+      },
+      {
+        spanish: "Compré un buen de cosas en el tianguis.",
+        english: "I bought a bunch of stuff at the street market."
+      }
+    ],
+    similarWords: ["Un chorro de", "Un chingo de", "Un montón de"],
+    tags: [
+      { label: "Colloquial 🗣️", color: "bg-green-700 text-white" },
+      { label: "A2 (¡Vas bien!)", color: "bg-yellow-400 text-black" },
+      { label: "Used EVERYWHERE 🇲🇽", color: "bg-red-600 text-white" }
+    ]
+  },
+  {
+    slug: "lo-que-le-sigue-de",
+    title: "Lo que le sigue de",
+    meaning: "Beyond / Ridiculously",
+    explanation:
+  "Wanna say someone or something is ridiculously talented, stupid, strong, etc.?\n\nIn Mexican Spanish, you’re gonna need this chunk:\n<strong>👉 lo que le sigue de + adjective</strong>\n\nIt’s how Mexicans say ‘beyond + adjective’ in a fun, dramatic way — and it’s WAY more useful than you think 😉",
+    examples: [
+      {
+        spanish: "Está lo que le sigue de feliz.",
+        english: "She’s beyond happy."
+      },
+      {
+        spanish: "Ese güey está lo que le sigue de tonto.",
+        english: "That dude is ridiculously dumb."
+      }
+    ],
+    similarWords: ["Súper", "Re que te", "Muy, pero muy"],
+    tags: [
+      { label: "Colloquial 🗣️", color: "bg-green-700 text-white" },
+      { label: "B2 (¡Nivelazo!)", color: "bg-yellow-400 text-black" },
+      { label: "Used EVERYWHERE 🇲🇽", color: "bg-red-600 text-white" }
+    ]
+  },
+  {
+    slug: "me-da-cosa",
+    title: "Me da cosa",
+    meaning: "It creeps me out / It weirds me out",
+    explanation:
+      "Feeling a bit freaked out?\n\nThere’s a way better way to say it than your bog-standard ‘tengo miedo’…\n <strong>👉 Me da cosa </strong>\n\nIt’s perfect for when something creeps you out or just makes you feel weird.\n\nErika’s always saying that cockroaches ‘le dan cosa’… and unfortunately for her, they’re EVERYWHERE here in Mexico 🪳",
+    examples: [
+      {
+        spanish: "Lo que me da cosa es que siempre me mira tan fijamente.",
+        english: "What freaks me out is that he always stares at me so intensely."
+      },
+      {
+        spanish: "Ay no, ¡me dan mucha cosa!",
+        english: "No way, they totally freak me out!"
+      }
+    ],
+    similarWords: ["Me da melo", "Me saca de onda", "Me da mala espina", "Me da ñáñaras"],
+    tags: [
+      { label: "Standard Spanish 😌", color: "bg-green-700 text-white" },
+      { label: "B1 (¡Ya le agarras la onda!)", color: "bg-yellow-400 text-black" },
+      { label: "Used EVERYWHERE 🇲🇽", color: "bg-red-600 text-white" }
+    ]
   }
 ];
 

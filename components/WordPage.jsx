@@ -12,6 +12,11 @@ export default function WordPage({ wordData }) {
   const [showQuiz, setShowQuiz] = useState(false);
   const [shakeLucky, setShakeLucky] = useState(false);
 
+  const [answer1, setAnswer1] = useState("");
+  const [answer2, setAnswer2] = useState("");
+  const [locked1, setLocked1] = useState(false);
+  const [locked2, setLocked2] = useState(false);
+
   const session = useSession();
   const supabase = useSupabaseClient();
   const [saving, setSaving] = useState(false);
@@ -178,7 +183,7 @@ export default function WordPage({ wordData }) {
             </button>
             {showPronunciation && (
               <div className="mt-2 p-5 bg-gray-100 rounded-xl flex flex-col gap-6 items-center">
-                {["Mexico City", "Yucatán", "Monterrey"].map((region, i) => (
+                {['Mexico City', 'Yucatán', 'Monterrey'].map((region, i) => (
                   <div key={i} className="flex flex-col items-center gap-2">
                     <button className="text-5xl cursor-pointer hover:animate-pulse">🔊</button>
                     <span className="text-lg font-semibold text-gray-700">{region}</span>
@@ -220,6 +225,30 @@ export default function WordPage({ wordData }) {
                 </div>
               )}
             </div>
+          </div>
+
+          <div>
+            <button onClick={() => setShowQuiz(!showQuiz)} className="w-full flex justify-between items-center bg-yellow-400 hover:bg-yellow-500 text-black px-6 py-4 rounded-full text-xl font-bold cursor-pointer">
+              Quiz <span>{showQuiz ? "−" : "+"}</span>
+            </button>
+            {showQuiz && (
+              <div className="mt-2 p-5 bg-gray-100 rounded-xl flex flex-col gap-8">
+                <div className="flex flex-col gap-4">
+                  <p className="text-lg font-bold">{wordData.quiz.q1.question}</p>
+                  <div className="flex flex-col gap-3">
+                    <button onClick={() => { setAnswer1("correct"); setLocked1(true); confetti({ particleCount: 100, spread: 70 }); }} disabled={locked1} className={`cursor-pointer px-4 py-3 rounded-lg text-lg font-semibold ${locked1 ? "bg-green-400" : "bg-white hover:bg-blue-100"}`}>{wordData.quiz.q1.correct}</button>
+                    <button onClick={() => { setAnswer1("wrong"); setLocked1(true); }} disabled={locked1} className={`cursor-pointer px-4 py-3 rounded-lg text-lg font-semibold ${locked1 ? "bg-red-400" : "bg-white hover:bg-blue-100"}`}>{wordData.quiz.q1.wrong}</button>
+                  </div>
+                </div>
+                <div className="flex flex-col gap-4">
+                  <p className="text-lg font-bold">{wordData.quiz.q2.question}</p>
+                  <div className="flex flex-col gap-3">
+                    <button onClick={() => { setAnswer2("wrong"); setLocked2(true); }} disabled={locked2} className={`cursor-pointer px-4 py-3 rounded-lg text-lg font-semibold ${locked2 ? "bg-red-400" : "bg-white hover:bg-blue-100"}`}>{wordData.quiz.q2.wrong}</button>
+                    <button onClick={() => { setAnswer2("correct"); setLocked2(true); confetti({ particleCount: 100, spread: 70 }); }} disabled={locked2} className={`cursor-pointer px-4 py-3 rounded-lg text-lg font-semibold ${locked2 ? "bg-green-400" : "bg-white hover:bg-blue-100"}`}>{wordData.quiz.q2.correct}</button>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
 
           <div className="mt-10 flex justify-center">

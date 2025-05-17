@@ -1,5 +1,7 @@
 @import "tailwindcss";
 
+@import url('https://fonts.googleapis.com/css2?family=Comic+Neue:wght@400;700&display=swap');
+
 :root {
   --background: #ffffff;
   --foreground: #171717;
@@ -22,7 +24,7 @@
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: "Comic Sans MS", "Comic Sans", cursive;
+  font-family: 'Comic Neue', cursive, sans-serif;
 }
 
 .card-container {
