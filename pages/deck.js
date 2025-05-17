@@ -127,6 +127,8 @@ export default function DeckPage() {
     } else {
       confetti();
       setDueCards([]);
+      setCurrentIndex(0);
+      setFlipped(false);
     }
 
     setProcessing(false);
@@ -139,10 +141,10 @@ export default function DeckPage() {
       </div>
     );
 
-  if (dueCards.length === 0)
+  if (!dueCards.length || currentIndex >= dueCards.length)
     return (
       <div className="min-h-screen flex justify-center items-center text-3xl" style={{ fontFamily: "Comic Sans MS, cursive, sans-serif" }}>
-🎉 You&apos;re done for today!
+        🎉 You&apos;re done for today!
       </div>
     );
 
