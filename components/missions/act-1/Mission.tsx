@@ -1881,3 +1881,4 @@ function TypeLine({
     </pre>
   );
 }
+export const scenes = Act1.scenes;
