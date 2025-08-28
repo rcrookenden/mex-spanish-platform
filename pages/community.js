@@ -75,8 +75,9 @@ export default function CommunityPage() {
           setProfile(profileData);
 
           // Get active XP boost
-          const { data: boostMultiplier } = await supabase
-            .rpc("get_user_xp_multiplier", { p_user_id: session.user.id });
+          const { data: boostMultiplier } = await supabase.rpc("get_user_xp_multiplier", {
+            p_user_id: session.user.id,
+          });
 
           if (boostMultiplier > 1) {
             setActiveBoost(boostMultiplier);
@@ -96,10 +97,12 @@ export default function CommunityPage() {
           // Get achievements
           const { data: achievementsData } = await supabase
             .from("user_achievements")
-            .select(`
+            .select(
+              `
               *,
               achievements (*)
-            `)
+            `
+            )
             .eq("user_id", session.user.id)
             .order("unlocked_at", { ascending: false });
 
@@ -108,10 +111,12 @@ export default function CommunityPage() {
           // Get rewards
           const { data: rewardsData } = await supabase
             .from("user_rewards")
-            .select(`
+            .select(
+              `
               *,
               reward_types:reward_type_id (*)
-            `)
+            `
+            )
             .eq("user_id", session.user.id)
             .order("earned_at", { ascending: false });
 
@@ -120,10 +125,12 @@ export default function CommunityPage() {
           // Get league history
           const { data: historyData } = await supabase
             .from("league_history")
-            .select(`
+            .select(
+              `
               *,
               weekly_leagues (league_name, league_tier)
-            `)
+            `
+            )
             .eq("user_id", session.user.id)
             .order("created_at", { ascending: false })
             .limit(10);
@@ -143,10 +150,12 @@ export default function CommunityPage() {
             // Get league participants
             const { data: participants } = await supabase
               .from("league_participants")
-              .select(`
+              .select(
+                `
                 *,
                 profiles!inner(username, avatar_url, xp, streak_count)
-              `)
+              `
+              )
               .eq("league_id", profileData.current_league_id)
               .order("weekly_xp", { ascending: false });
 
@@ -187,7 +196,8 @@ export default function CommunityPage() {
     return { zone: "safe", color: "text-gray-600", label: "Safe Zone" };
   };
 
-  const userPosition = leagueParticipants.findIndex((p) => p.user_id === session?.user?.id) + 1;
+  const userPosition =
+    leagueParticipants.findIndex((p) => p.user_id === session?.user?.id) + 1;
   const promotionInfo =
     userPosition && leagueData
       ? getPromotionZone(userPosition, leagueParticipants.length, leagueData.league_tier)
@@ -196,7 +206,9 @@ export default function CommunityPage() {
   const markAsRead = async (notificationId) => {
     await supabase.from("notifications").update({ read: true }).eq("id", notificationId);
 
-    setNotifications((prev) => prev.map((n) => (n.id === notificationId ? { ...n, read: true } : n)));
+    setNotifications((prev) =>
+      prev.map((n) => (n.id === notificationId ? { ...n, read: true } : n))
+    );
     setUnreadCount((prev) => Math.max(0, prev - 1));
   };
 
@@ -289,7 +301,9 @@ export default function CommunityPage() {
               <button
                 onClick={() => setActiveTab("league")}
                 className={`flex-1 py-4 px-6 font-semibold transition-colors relative ${
-                  activeTab === "league" ? "text-green-600 border-b-2 border-green-600" : "text-gray-600 hover:text-gray-800"
+                  activeTab === "league"
+                    ? "text-green-600 border-b-2 border-green-600"
+                    : "text-gray-600 hover:text-gray-800"
                 }`}
               >
                 🏆 League
@@ -297,7 +311,9 @@ export default function CommunityPage() {
               <button
                 onClick={() => setActiveTab("stats")}
                 className={`flex-1 py-4 px-6 font-semibold transition-colors relative ${
-                  activeTab === "stats" ? "text-green-600 border-b-2 border-green-600" : "text-gray-600 hover:text-gray-800"
+                  activeTab === "stats"
+                    ? "text-green-600 border-b-2 border-green-600"
+                    : "text-gray-600 hover:text-gray-800"
                 }`}
               >
                 📊 Stats
@@ -308,7 +324,9 @@ export default function CommunityPage() {
               <button
                 onClick={() => setActiveTab("notifications")}
                 className={`flex-1 py-4 px-6 font-semibold transition-colors relative ${
-                  activeTab === "notifications" ? "text-green-600 border-b-2 border-green-600" : "text-gray-600 hover:text-gray-800"
+                  activeTab === "notifications"
+                    ? "text-green-600 border-b-2 border-green-600"
+                    : "text-gray-600 hover:text-gray-800"
                 }`}
               >
                 🔔 Alerts
@@ -348,7 +366,9 @@ export default function CommunityPage() {
                         }`}
                       >
                         <p className="text-6xl font-bold mb-2">#{userPosition}</p>
-                        <p className={`font-semibold text-lg ${promotionInfo?.color}`}>{promotionInfo?.label}</p>
+                        <p className={`font-semibold text-lg ${promotionInfo?.color}`}>
+                          {promotionInfo?.label}
+                        </p>
                       </div>
 
                       {/* League Standings */}
@@ -376,7 +396,13 @@ export default function CommunityPage() {
                               }`}
                             >
                               <div className="text-xl font-bold w-12">
-                                {position === 1 ? "🥇" : position === 2 ? "🥈" : position === 3 ? "🥉" : `#${position}`}
+                                {position === 1
+                                  ? "🥇"
+                                  : position === 2
+                                  ? "🥈"
+                                  : position === 3
+                                  ? "🥉"
+                                  : `#${position}`}
                               </div>
                               <img
                                 src={participant.profiles?.avatar_url || "/images/default-avatar-male.png"}
@@ -395,7 +421,9 @@ export default function CommunityPage() {
                               <div className="text-right">
                                 <p className="font-bold text-lg">{participant.weekly_xp} XP</p>
                                 {participant.profiles?.streak_count > 0 && (
-                                  <p className="text-sm text-gray-600">{participant.profiles.streak_count}🔥</p>
+                                  <p className="text-sm text-gray-600">
+                                    {participant.profiles.streak_count}🔥
+                                  </p>
                                 )}
                               </div>
                             </div>
@@ -422,7 +450,9 @@ export default function CommunityPage() {
                   ) : (
                     <div className="text-center py-12">
                       <h3 className="text-2xl font-bold mb-3">🌮 Ready to compete?</h3>
-                      <p className="text-gray-600 mb-6">Start learning to join this week&apos;s league!</p>
+                      <p className="text-gray-600 mb-6">
+                        Start learning to join this week&apos;s league!
+                      </p>
                       <button
                         onClick={() => (window.location.href = "/deck")}
                         className="bg-yellow-400 hover:bg-yellow-500 text-black px-8 py-3 rounded-full font-bold text-lg"
@@ -476,11 +506,16 @@ export default function CommunityPage() {
                     {achievements.length > 0 ? (
                       <div className="grid grid-cols-2 gap-3">
                         {achievements.map((ach) => (
-                          <div key={ach.id} className="bg-yellow-50 rounded-lg p-3 flex items-center gap-3">
+                          <div
+                            key={ach.id}
+                            className="bg-yellow-50 rounded-lg p-3 flex items-center gap-3"
+                          >
                             <span className="text-2xl">{ach.achievements.icon}</span>
                             <div className="flex-1">
                               <p className="font-semibold text-sm">{ach.achievements.name}</p>
-                              <p className="text-xs text-gray-600">+{ach.achievements.points} points</p>
+                              <p className="text-xs text-gray-600">
+                                +{ach.achievements.points} points
+                              </p>
                             </div>
                           </div>
                         ))}
@@ -500,15 +535,21 @@ export default function CommunityPage() {
                           .map((reward) => (
                             <button
                               key={reward.id}
-                              onClick={() => handleReward(reward.id, reward.reward_types.type)}
+                              onClick={() =>
+                                handleReward(reward.id, reward.reward_types.type)
+                              }
                               className="w-full p-4 bg-gradient-to-r from-purple-500 to-pink-500 text-white rounded-lg hover:from-purple-600 hover:to-pink-600 transition-all transform hover:scale-[1.02]"
                             >
                               <div className="flex items-center justify-between">
                                 <div className="flex items-center gap-3">
                                   <span className="text-2xl">{reward.reward_types.icon}</span>
                                   <div className="text-left">
-                                    <p className="font-semibold">{reward.reward_types.name}</p>
-                                    <p className="text-sm opacity-90">{reward.reward_types.description}</p>
+                                    <p className="font-semibold">
+                                      {reward.reward_types.name}
+                                    </p>
+                                    <p className="text-sm opacity-90">
+                                      {reward.reward_types.description}
+                                    </p>
                                   </div>
                                 </div>
                                 <span className="text-sm">Use →</span>
@@ -517,7 +558,9 @@ export default function CommunityPage() {
                           ))}
                       </div>
                     ) : (
-                      <p className="text-gray-600">No active rewards. Win leagues to earn rewards!</p>
+                      <p className="text-gray-600">
+                        No active rewards. Win leagues to earn rewards!
+                      </p>
                     )}
                   </div>
 
@@ -527,7 +570,10 @@ export default function CommunityPage() {
                       <h3 className="font-bold text-lg mb-4">League History</h3>
                       <div className="space-y-2">
                         {leagueHistory.map((history) => (
-                          <div key={history.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                          <div
+                            key={history.id}
+                            className="flex items-center justify-between p-3 bg-gray-50 rounded-lg"
+                          >
                             <div>
                               <p className="font-semibold">
                                 {getLeagueEmoji(history.weekly_leagues.league_tier)}{" "}
@@ -573,20 +619,30 @@ export default function CommunityPage() {
                         <div
                           key={notification.id}
                           className={`p-4 rounded-lg cursor-pointer transition-all ${
-                            notification.read ? "bg-gray-50" : "bg-blue-50 border-l-4 border-blue-500"
+                            notification.read
+                              ? "bg-gray-50"
+                              : "bg-blue-50 border-l-4 border-blue-500"
                           }`}
-                          onClick={() => !notification.read && markAsRead(notification.id)}
+                          onClick={() =>
+                            !notification.read && markAsRead(notification.id)
+                          }
                         >
                           <h4 className="font-semibold">{notification.title}</h4>
-                          <p className="text-sm text-gray-600 mt-1">{notification.message}</p>
+                          <p className="text-sm text-gray-600 mt-1">
+                            {notification.message}
+                          </p>
                           <p className="text-xs text-gray-400 mt-2">
-                            {new Date(notification.created_at).toLocaleDateString()}
+                            {new Date(
+                              notification.created_at
+                            ).toLocaleDateString()}
                           </p>
                         </div>
                       ))}
                     </div>
                   ) : (
-                    <p className="text-center text-gray-600 py-8">No notifications yet</p>
+                    <p className="text-center text-gray-600 py-8">
+                      No notifications yet
+                    </p>
                   )}
                 </div>
               )}
