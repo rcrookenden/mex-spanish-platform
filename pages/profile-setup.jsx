@@ -31,7 +31,7 @@ export default function ProfileSetupPage() {
         .single();
 
       if (data) {
-        router.push("/forum");
+        router.push("/community");
       } else {
         setLoading(false);
       }
@@ -55,8 +55,8 @@ export default function ProfileSetupPage() {
     if (error) {
       alert("Profile creation failed: " + error.message);
     } else {
-      alert("Profile setup complete! 🎉 Redirecting to the forum...");
-      router.push("/forum");
+      alert("Profile setup complete! 🎉");
+      router.push("/community");
     }
   };
 
