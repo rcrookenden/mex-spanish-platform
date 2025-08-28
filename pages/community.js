@@ -1,3 +1,4 @@
+/* eslint-disable react/no-unescaped-entities */
 import { useEffect, useState } from "react";
 import Head from "next/head";
 import { useSession, useSupabaseClient } from "@supabase/auth-helpers-react";
