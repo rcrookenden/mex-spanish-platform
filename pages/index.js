@@ -4,6 +4,8 @@ import Head from "next/head";
 import words from "../data/words";
 import confetti from "canvas-confetti";
 import { useSupabaseClient, useSession } from "@supabase/auth-helpers-react";
+import Link from "next/link";
+
 
 export default function Home() {
   const supabase = useSupabaseClient();
@@ -285,19 +287,20 @@ export default function Home() {
 
       {/* QUICK NAVIGATION BUTTONS */}
 <div className="flex justify-center gap-4 mb-12 mt-2">
-  <a
-    href="/chunks-browser"
-    className="bg-green-700 hover:bg-green-800 text-white font-bold px-6 py-3 rounded-full shadow cursor-pointer transition text-lg"
-  >
-    ⚡ Chunk Browser
-  </a>
+<Link
+  href="/chunks-browser"
+  className="bg-green-700 hover:bg-green-800 text-white font-bold px-6 py-3 rounded-full shadow cursor-pointer transition text-lg"
+>
+  ⚡ Chunk Browser
+</Link>
 
-  <a
-    href="/community"
-    className="bg-blue-600 hover:bg-blue-700 text-white font-bold px-6 py-3 rounded-full shadow cursor-pointer transition text-lg"
-  >
-    🏆 Community
-  </a>
+<Link
+  href="/community"
+  className="bg-blue-600 hover:bg-blue-700 text-white font-bold px-6 py-3 rounded-full shadow cursor-pointer transition text-lg"
+>
+  🏆 Community
+</Link>
+
 </div>
 
 
@@ -327,28 +330,29 @@ export default function Home() {
         </h2>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
           {["chela", "chido", "mande", "güey"].map((slug) => (
-            <a
-              key={slug}
-              href={`/word/${encodeURIComponent(slug)}`}
-              className="bg-green-50 p-8 rounded-2xl shadow-2xl text-center hover:scale-105 hover:shadow-[0_0_15px_rgba(34,197,94,0.6)] transition-transform duration-300 flex flex-col justify-between items-center h-[420px] overflow-hidden"
-            >
-              <div className="h-[300px] w-full flex items-center justify-center mb-4">
-                <img
-                  src={`/images/${
-                    slug === "chela"
-                      ? "caguama"
-                      : slug === "güey"
-                      ? "wey"
-                      : slug
-                  }.png`}
-                  alt={`${slug} cartoon`}
-                  className="max-h-full max-w-full object-contain"
-                />
-              </div>
-              <span className="text-5xl font-extrabold text-green-700">
-                {slug}
-              </span>
-            </a>
+ <Link
+  key={slug}
+  href={`/word/${encodeURIComponent(slug)}`}
+  className="bg-green-50 p-8 rounded-2xl shadow-2xl text-center hover:scale-105 hover:shadow-[0_0_15px_rgba(34,197,94,0.6)] transition-transform duration-300 flex flex-col justify-between items-center h-[420px] overflow-hidden"
+>
+  <div className="h-[300px] w-full flex items-center justify-center mb-4">
+    <img
+      src={`/images/${
+        slug === "chela"
+          ? "caguama"
+          : slug === "güey"
+          ? "wey"
+          : slug
+      }.png`}
+      alt={`${slug} cartoon`}
+      className="max-h-full max-w-full object-contain"
+    />
+  </div>
+  <span className="text-5xl font-extrabold text-green-700">
+    {slug}
+  </span>
+</Link>
+
           ))}
         </div>
       </section>
@@ -365,15 +369,16 @@ export default function Home() {
             { slug: "que-tengas-buen-dia", text: "Que tengas buen día" },
             { slug: "ya-me-voy", text: "Ya me voy" },
           ].map(({ slug, text }) => (
-            <a
-              key={slug}
-              href={`/chunk/${slug}`}
-              className="bg-green-50 p-8 rounded-2xl shadow-2xl text-center hover:scale-105 hover:shadow-[0_0_15px_rgba(34,197,94,0.6)] transition-transform duration-300 flex items-center justify-center h-[420px] overflow-hidden"
-            >
-              <span className="text-3xl font-extrabold text-green-700">
-                {text}
-              </span>
-            </a>
+<Link
+  key={slug}
+  href={`/chunk/${slug}`}
+  className="bg-green-50 p-8 rounded-2xl shadow-2xl text-center hover:scale-105 hover:shadow-[0_0_15px_rgba(34,197,94,0.6)] transition-transform duration-300 flex items-center justify-center h-[420px] overflow-hidden"
+>
+  <span className="text-3xl font-extrabold text-green-700">
+    {text}
+  </span>
+</Link>
+
           ))}
         </div>
       </section>

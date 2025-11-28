@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState, useRef, useCallback } from "react";
 import { useSession, useSupabaseClient } from "@supabase/auth-helpers-react";
 import confetti from "canvas-confetti";
 import toast from "react-hot-toast";
@@ -31,17 +31,9 @@ export default function ChallengesSection() {
     });
   };
 
-  useEffect(() => {
-    if (!session?.user?.id) {
-      setLoading(false);
-      return;
-    }
-    fetchChallenges();
-  }, [session]);
-
-  const fetchChallenges = async () => {
+  // ⬇⬇⬇ FIXED — now stable & lint compliant
+  const fetchChallenges = useCallback(async () => {
     try {
-      // Fetch challenge definitions
       const { data: allChallenges, error: challengesError } = await supabase
         .from("challenges")
         .select("*")
@@ -51,7 +43,6 @@ export default function ChallengesSection() {
 
       if (challengesError) throw challengesError;
 
-      // Fetch progress
       const { data: userProgress, error: progressError } = await supabase
         .from("user_challenges")
         .select("*")
@@ -59,7 +50,6 @@ export default function ChallengesSection() {
 
       if (progressError) throw progressError;
 
-      // Merge with progress
       const challengesWithProgress = allChallenges.map((challenge) => {
         const progress = userProgress?.find(
           (up) => up.challenge_id === challenge.id
@@ -70,57 +60,39 @@ export default function ChallengesSection() {
 
         if (progress?.progress) {
           switch (challenge.challenge_type) {
-
-            // 🔥 NEW: chunk-saving challenge
             case "save_chunks":
               const chunksSaved = progress.progress.chunks_saved || 0;
               const chunksNeeded = challenge.requirements.chunks_to_save;
               progressText = `${chunksSaved}/${chunksNeeded}`;
-              progressPercentage = Math.min(
-                100,
-                (chunksSaved / chunksNeeded) * 100
-              );
+              progressPercentage = Math.min(100, (chunksSaved / chunksNeeded) * 100);
               break;
 
             case "reviews":
               const reviewsDone = progress.progress.reviews_completed || 0;
               const reviewsNeeded = challenge.requirements.reviews_needed;
               progressText = `${reviewsDone}/${reviewsNeeded}`;
-              progressPercentage = Math.min(
-                100,
-                (reviewsDone / reviewsNeeded) * 100
-              );
+              progressPercentage = Math.min(100, (reviewsDone / reviewsNeeded) * 100);
               break;
 
             case "quiz":
               const correctAnswers = progress.progress.correct_answers || 0;
-              const answersNeeded =
-                challenge.requirements.correct_answers_needed;
+              const answersNeeded = challenge.requirements.correct_answers_needed;
               progressText = `${correctAnswers}/${answersNeeded}`;
-              progressPercentage = Math.min(
-                100,
-                (correctAnswers / answersNeeded) * 100
-              );
+              progressPercentage = Math.min(100, (correctAnswers / answersNeeded) * 100);
               break;
 
             case "streak":
               const currentStreak = progress.progress.streak_count || 0;
               const daysRequired = challenge.requirements.days_required;
               progressText = `${currentStreak}/${daysRequired} days`;
-              progressPercentage = Math.min(
-                100,
-                (currentStreak / daysRequired) * 100
-              );
+              progressPercentage = Math.min(100, (currentStreak / daysRequired) * 100);
               break;
 
             case "weekly_xp":
               const currentXP = progress.progress.weekly_xp || 0;
               const xpNeeded = challenge.requirements.xp_needed;
               progressText = `${currentXP}/${xpNeeded} XP`;
-              progressPercentage = Math.min(
-                100,
-                (currentXP / xpNeeded) * 100
-              );
+              progressPercentage = Math.min(100, (currentXP / xpNeeded) * 100);
               break;
           }
         }
@@ -135,32 +107,26 @@ export default function ChallengesSection() {
         };
       });
 
-      // Auto-update streak + XP challenges
       await updateWeeklyProgressChallenges();
 
-      // 🎉 Detect newly completed challenges
       let newlyCompleted = [];
       if (hasFetchedOnce.current) {
         newlyCompleted = challengesWithProgress.filter(
           (ch) => ch.is_completed && !prevCompleted.current.has(ch.id)
         );
-
         newlyCompleted.forEach((ch) => celebrateChallengeCompletion(ch));
       }
 
-      // Save completed IDs
       prevCompleted.current = new Set(
         challengesWithProgress.filter((c) => c.is_completed).map((c) => c.id)
       );
 
       hasFetchedOnce.current = true;
 
-      // ⭐ Sort challenges by difficulty (easy → medium → hard)
-const difficultyOrder = { easy: 1, medium: 2, hard: 3 };
-
-challengesWithProgress.sort((a, b) => {
-  return difficultyOrder[a.difficulty] - difficultyOrder[b.difficulty];
-});
+      const difficultyOrder = { easy: 1, medium: 2, hard: 3 };
+      challengesWithProgress.sort(
+        (a, b) => difficultyOrder[a.difficulty] - difficultyOrder[b.difficulty]
+      );
 
       setChallenges(challengesWithProgress);
     } catch (error) {
@@ -169,7 +135,16 @@ challengesWithProgress.sort((a, b) => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [session?.user?.id, supabase]); // ⬅ required dependencies
+
+  // ⬇ FIXED useEffect now references callback safely
+  useEffect(() => {
+    if (!session?.user?.id) {
+      setLoading(false);
+      return;
+    }
+    fetchChallenges();
+  }, [fetchChallenges, session?.user?.id]);
 
   const updateWeeklyProgressChallenges = async () => {
     try {
@@ -201,27 +176,19 @@ challengesWithProgress.sort((a, b) => {
 
   const getDifficultyColor = (difficulty) => {
     switch (difficulty) {
-      case "easy":
-        return "bg-green-100 text-green-700 border-green-300";
-      case "medium":
-        return "bg-yellow-100 text-yellow-700 border-yellow-300";
-      case "hard":
-        return "bg-red-100 text-red-700 border-red-300";
-      default:
-        return "bg-gray-100 text-gray-700 border-gray-300";
+      case "easy": return "bg-green-100 text-green-700 border-green-300";
+      case "medium": return "bg-yellow-100 text-yellow-700 border-yellow-300";
+      case "hard": return "bg-red-100 text-red-700 border-red-300";
+      default: return "bg-gray-100 text-gray-700 border-gray-300";
     }
   };
 
   const getDifficultyEmoji = (difficulty) => {
     switch (difficulty) {
-      case "easy":
-        return "🌱";
-      case "medium":
-        return "🔥";
-      case "hard":
-        return "💎";
-      default:
-        return "⭐";
+      case "easy": return "🌱";
+      case "medium": return "🔥";
+      case "hard": return "💎";
+      default: return "⭐";
     }
   };
 
@@ -287,11 +254,11 @@ challengesWithProgress.sort((a, b) => {
           <button
             key={filter}
             onClick={() => setActiveFilter(filter)}
-className={`px-4 py-2 rounded-full font-semibold transition-colors cursor-pointer ${
-  activeFilter === filter
-    ? "bg-purple-600 text-white"
-    : "bg-gray-100 hover:bg-gray-200 text-gray-700"
-}`}
+            className={`px-4 py-2 rounded-full font-semibold transition-colors cursor-pointer ${
+              activeFilter === filter
+                ? "bg-purple-600 text-white"
+                : "bg-gray-100 hover:bg-gray-200 text-gray-700"
+            }`}
           >
             {filter.charAt(0).toUpperCase() + filter.slice(1)}
           </button>
