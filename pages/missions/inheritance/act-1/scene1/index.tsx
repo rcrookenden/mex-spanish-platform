@@ -177,7 +177,11 @@ export default function Page() {
 }
 
 export function MissionRunner({ mission }: { mission: Mission }) {
-  const preload = Array.isArray(mission.preload) ? mission.preload : [];
+  const preload = React.useMemo(
+  () => (Array.isArray(mission.preload) ? mission.preload : []),
+  [mission.preload]
+);
+
   const router = useRouter();
 
   // Flatten ALL scenes in order

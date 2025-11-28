@@ -3,7 +3,6 @@
 import * as React from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import ChoiceBlock from "@/components/ChoiceBlock";
 
 /* ───────────────── Types ───────────────── */
 export type Option = {
@@ -387,19 +386,6 @@ export function MissionRunner({ mission }: { mission: Mission }) {
               sfx={sfx}
               confetti={confetti}
               onAward={(d) => awardXP(d)}
-              onNext={goNext}
-              onBack={back}
-              nextLabel={nextLabel}
-            />
-          )}
-
-          {/* Fallback plain choice */}
-          {current?.kind === "choice" && (
-            <ChoiceBlock
-              block={current as ChoicePrompt}
-              onAward={(d) => awardXP(d)}
-              fireXp={(amt, x, y) => fireXp(amt, x, y)}
-              sfx={sfx}
               onNext={goNext}
               onBack={back}
               nextLabel={nextLabel}
