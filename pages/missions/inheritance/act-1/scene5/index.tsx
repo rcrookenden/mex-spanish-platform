@@ -3,6 +3,7 @@
 import * as React from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import ChoiceBlock from "@/components/ChoiceBlock";
 
 /* ───────────────── Types ───────────────── */
 export type Option = {
@@ -344,7 +345,7 @@ export function MissionRunner({ mission }: { mission: Mission }) {
               body={(current as InfoCard).body}
               onNext={() => { audio.stopAll(); goNext(); }}
               onBack={back}
-              sfx={useAnswerSfxFiles()}
+              sfx={sfx}
               nextLabel={nextLabel}
             />
           )}

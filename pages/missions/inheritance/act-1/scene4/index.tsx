@@ -203,7 +203,10 @@ export default function Page() {
 
 /* ─────────────── Runner (noir skin) ─────────────── */
 export function MissionRunner({ mission }: { mission: Mission }) {
-  const preload = Array.isArray(mission.preload) ? mission.preload : [];
+  const preload = React.useMemo(
+  () => (Array.isArray(mission.preload) ? mission.preload : []),
+  [mission.preload]
+);
 
   const sequence: Block[] = React.useMemo(() => {
     const allSceneBlocks = mission.scenes.flatMap((s) => s.blocks || []);
