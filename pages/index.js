@@ -283,6 +283,24 @@ export default function Home() {
         </form>
       </div>
 
+      {/* QUICK NAVIGATION BUTTONS */}
+<div className="flex justify-center gap-4 mb-12 mt-2">
+  <a
+    href="/chunks-browser"
+    className="bg-green-700 hover:bg-green-800 text-white font-bold px-6 py-3 rounded-full shadow cursor-pointer transition text-lg"
+  >
+    ⚡ Chunk Browser
+  </a>
+
+  <a
+    href="/community"
+    className="bg-blue-600 hover:bg-blue-700 text-white font-bold px-6 py-3 rounded-full shadow cursor-pointer transition text-lg"
+  >
+    🏆 Community
+  </a>
+</div>
+
+
       {/* FEELING LUCKY */}
       <div className="flex flex-col items-center mb-12">
         <button

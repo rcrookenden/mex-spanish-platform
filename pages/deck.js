@@ -5,6 +5,26 @@ import confetti from "canvas-confetti";
 import toast from "react-hot-toast";
 import words from "../data/words";
 
+// 🔤 English formatting helper — lowercase first letter UNLESS sentence ends in punctuation
+function formatEnglish(text) {
+  if (!text) return "";
+  const trimmed = text.trim();
+
+  const endsPunct = /[.!?…]$/.test(trimmed) || /\.\.\.$/.test(trimmed); // ← NEW: handles ...
+  const hasSpaces = trimmed.includes(" ");
+
+  // RULE 1 — full sentence (including ellipsis) → capitalize
+  if (hasSpaces && endsPunct) {
+    return trimmed.charAt(0).toUpperCase() + trimmed.slice(1);
+  }
+
+  // RULE 2 — otherwise treat as meaning fragment
+  return trimmed.charAt(0).toLowerCase() + trimmed.slice(1);
+}
+
+
+
+
 export default function DeckPage() {
   const session = useSession();
   const supabase = useSupabaseClient();
@@ -382,6 +402,7 @@ export default function DeckPage() {
     );
 
   const card = dueCards[currentIndex];
+console.log("FLASHCARD OBJECT:", JSON.stringify(card, null, 2));
 
   return (
     <div
@@ -436,24 +457,374 @@ export default function DeckPage() {
             className={`card-inner cursor-pointer rounded-3xl shadow-2xl border-4 border-[#ce1126] bg-white hover:scale-105 hover:shadow-[0_0_30px_rgba(206,17,38,0.8)] ${flipped ? "flipped" : ""}`}
             onClick={() => setFlipped(!flipped)}
           >
-            <div className="card-face text-3xl font-bold flex items-center justify-center">
-              {card.front_text}
-            </div>
+<div className="card-face text-3xl font-bold flex flex-col justify-center items-center px-6 text-center">
+
+  {/* 1️⃣ Extract ALL 👉 meanings, strip HTML, join with / */}
+  <div className="mb-6 text-4xl font-bold text-gray-800">
+    {(() => {
+      if (!card.front_text) return "";
+
+          // ⭐ SPECIAL OVERRIDE — "ya-me-dio"
+    // Force the correct English meaning on the FRONT
+    if (card.slug === "ya-me-dio") {
+      return "I’m… / I feel… (but with Mexican spice!)";
+    }
+
+// 1️⃣ FIRST — try to extract GENERAL MEANINGS, not example translations
+{
+  const html = card.front_text;
+
+// NEW 👉 extractor — get the meaning from <em> instead of <strong>
+const generalMeaning = html.match(/👉.*?<em>(.*?)<\/em>/g);
+
+if (generalMeaning && generalMeaning.length > 0) {
+  return generalMeaning
+    .map(m => m.replace(/👉.*?<em>(.*?)<\/em>/, "$1").trim()) // Pull only italics text
+    .join(" / ");
+}
+
+
+  if (generalMeaning && generalMeaning.length > 0) {
+    return generalMeaning
+      .map(m => m.replace(/👉|<[^>]*>/g, "").trim())
+      .join(" / "); // → the proper flashcard front meaning
+  }
+
+  // If no general meaning exists, fallback to the example "Strong = em"
+  const fallback = html.match(/<strong>.*?<\/strong>\s*=\s*<em>(.*?)<\/em>/i);
+  if (fallback) return fallback[1].trim();
+}
+
+
+// 2️⃣ THEN strip HTML (AFTER extraction attempt)
+const clean = card.front_text.replace(/<[^>]*>/g, "");
+
+
+// 2. Extract meaning lines (handles 👉 or numbered 1. 2. 3.)
+const meanings = clean
+  .split("\n")
+  .map(line => line.trim())
+  .filter(line => line.startsWith("👉") || /^\d+\./.test(line)) // detect 👉 or 1. / 2.
+  .map(line =>
+    line
+      .replace("👉", "")        // remove arrow if present
+      .replace(/^\d+\.\s*/, "") // remove numbering → "1. " → ""
+      .trim()
+  );
+
+
+      // If nothing found, fallback
+      if (meanings.length === 0) return clean;
+
+// 3. Join all meanings with " / "
+const combined = meanings.join(" / ");
+
+// RULE 1: starts with ¿ or ¡ → preserve
+if (combined.trim().startsWith("¿") || combined.trim().startsWith("¡")) {
+  return combined;
+}
+
+const trimmed = combined.trim();
+
+// RULE 2: ends with ! or ? → preserve
+if (trimmed.endsWith("!") || trimmed.endsWith("?")) {
+  return combined;
+}
+
+// RULE 3: otherwise lowercase everything
+// 3. CUSTOM RULE → Prevent lowercasing IF sentence starts with I / I'm / I'll / I'd / I've
+if (/^I\b/.test(combined.trim())) {
+  return combined.trim();
+}
+
+return formatEnglish(combined);
+
+
+    })()}
+  </div>
+
+  {/* 2️⃣ Cloze deleted example (same style as BACK example) */}
+  {card.example && (
+    <div className="text-2xl font-semibold text-green-700 text-center px-4">
+{(() => {
+
+  const example = card.example;
+  let chunk = (card.back_text || "").toLowerCase().trim();
+
+  // ======================================================
+// 🔥 CLOZE FOR SINGLE WORD FLASHCARDS (güey, neta, chela…)
+// ======================================================
+if (card.type === "word" && card.example) {
+  let word = (card.back_text || "").toLowerCase().trim();
+  if (!word) return example;
+
+  // remove HTML
+  word = word.replace(/<[^>]*>/g, "");
+
+  // split into variants → ["güey","wey"]
+  const variants = word.split(/[\/,|]/).map(v => v.trim()).filter(Boolean);
+
+  let result = example;
+
+  variants.forEach(v => {
+    const safe = v.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    const regex = new RegExp(`\\b${safe}[a-záéíóúñü]*\\b`, "gi");
+    result = result.replace(regex, "_____");
+  });
+
+  return result;
+}
+
+// ⭐ SPECIAL CASE — Se me antojó (also catches present: se me antoja)
+if (card.slug === "se-me-antojo") {
+  return example.replace(/se me antoj[aáéíóúüñ]+/gi, "_____");
+}
+
+   // ⭐ SPECIAL CASE FOR "irle-a"
+      if (card.slug === "irle-a") {
+        return "_____, pero todavía lo queremos.";
+      }
+
+      // ⭐ SPECIAL OVERRIDE — "ya-me-dio" FRONT EXAMPLE
+if (card.slug === "ya-me-dio") {
+  return "Ya _____ frío.";
+}
+
+      // ⭐ SPECIAL CASE — Al fin y al cabo → hide ONLY "al cabo"
+if (card.slug === "al-fin-y-al-cabo") {
+  return example.replace(/al cabo/gi, "_____");
+}
+
+// ⭐ SPECIAL CASE — ¿Cómo que…?
+if (card.slug === "como-que") {
+  return card.example
+    .replace(/¿Cómo que/gi, "¿_____ que"); // ← leaves que visible like native speech
+}
+
+// ⭐ SPECIAL CASE — "¿Cómo que no?"
+if (card.slug === "como-que-no") {
+  return card.example.replace(/¿Cómo que no\?/gi, "¿_____ no?");
+}
+
+      // SPECIAL CASE — "Deja tú" (sentence starter)
+// Front example should read → "_____ que llueva, ¡ya se fue la luz en toda la colonia!"
+if (card.slug === "deja-tu") {
+  return example.replace(/Deja tú/gi, "_____");
+}
+
+      // ⭐ SPECIAL CASE — Me cae bien/mal (all tenses + pronouns)
+if (card.slug === "me-cae-bien") {
+  return example.replace(
+    /\b(me|te|le|nos|les)\s+ca(?:e|en|ía|yó|yeron|erá|ería|erían|ían)\s+(bien|mal)/gi,
+    "_____"
+  );
+}
+
+// ⭐ SPECIAL CASE — "Siento que"
+// Front should appear as: S____ que ya no me quiere.
+if (card.slug === "siento-que") {
+  return example.replace(/Siento que/gi, "S____ que");
+}
+
+
+// ⭐ SPECIAL CASE — "Ahorita que" → A____ que
+if (card.slug === "ahorita-que") {
+  return example.replace(/\bAhorita que\b/gi, "A____ que");
+}
+
+// ⭐ SPECIAL CASE — "apenas" always stays the same form → hide whole word
+if (card.slug === "apenas") {
+  return example.replace(/\bapenas\b/gi, "_____");
+}
+
+// ⭐ SPECIAL CASE — "mejor" → blank entire word only
+if (card.slug === "mejor") {
+  return example.replace(/\bmejor\b/gi, "_____");
+}
+
+// ⭐ SPECIAL CASE — Y qué crees?
+// Front should show: ¿_____? Me dieron el trabajo.
+if (card.slug === "y-que-crees") {
+  return example.replace(/¿?Y qué crees\??/gi, "¿_____?");
+}
+
+// ⭐ FULL CLOZE — wipes entire verb, no ó left behind
+if (card.slug === "se-me-olvido") {
+  return example.replace(
+    /\bse\s+(me|te|le|nos|les)\s+olvid[^\s]*/gi,
+    "_____"
+  );
+}
+
+
+// ⭐ SPECIAL CASE — Ahí nos vemos → front example should blank only "ahí nos"
+if (card.slug === "ahi-nos-vemos") {
+  return example.replace(/ahí nos/gi, "_____");
+}
+
+// ⭐ SPECIAL CASE — "De haber sabido" (keep "De", hide only "haber sabido")
+if (card.slug === "de-haber-sabido") {
+  return example.replace(/De\s+haber\s+sabido/gi, "De _____");
+}
+
+// ⭐ SPECIAL CASE — Tener ganas de (blank only "ganas de")
+if (card.slug === "tener-ganas-de") {
+  return example.replace(/\bganas de\b/gi, "_____");
+}
+
+
+// ⭐ SPECIAL CASE — Pon tú que
+// Front should show: "_____ tú que ganas la lotería, ¿qué harías?"
+if (card.slug === "pon-tu-que") {
+  return example.replace(/Pon tú que/gi, "_____ tú que");
+}
+
+// ⭐ SPECIAL CASE — "La pasé bien" → blank "la paso / la pasé / la pasaba..."
+if (card.slug === "la-pase-bien") {
+  return example.replace(/\bla pas[oaéíóú]+\b/gi, "_____");
+}
+
+
+      // ⭐ SPECIAL CASE — hide "tardes ya" in greeting card
+if (card.slug === "buenos-dias-tardes-ya") {
+  return example.replace(/¡tardes ya!/gi, "_____");
+}
+
+
+// ⭐ SPECIAL CASE — hide "¿Ya tan tarde?" in example
+if (card.slug === "ya-tan-tarde") {
+  return example.replace(/¿Ya tan tarde\??/gi, "_____");
+}
+
+         // ⭐ SPECIAL CASE FOR "no-tengo-con-que"
+   if (card.slug === "no-tengo-con-que") {
+     return example.replace(/no tengo con qué/gi, "_____");
+   }
+
+   // ⭐ UNIVERSAL RULE FOR "Andar + adjective"
+if (card.slug === "andar-adjective") {
+  return example.replace(/\bando\b|\bandas\b|\banda\b|\bandan\b|\bandamos\b|\banduve\b|\bandaba\b/gi, "_____");
+}
+
+// ⭐ Ándale pues / Órale pues cloze rule
+if (card.slug === "andale-pues") {
+  return example
+    .replace(/¡?Ándale pues,?/gi, "_____")
+    .replace(/¡?Órale pues,?/gi, "_____");
+}
+
+  if (!chunk) return example;
+
+  // 1️⃣ SPECIAL CASE: “ponerle + nombre”, “echarle + ganas”, etc.
+  if (chunk.includes("+")) {
+    const verbPart = chunk.split("+")[0].trim(); // "ponerle"
+    const escaped = verbPart.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    const regex = new RegExp(`\\b${escaped}\\b`, "gi");
+    return example.replace(regex, "_____");
+  }
+
+  // 2️⃣ VERB + PHRASE chunks (“tener que ver”, etc.)
+  const words = chunk.split(" ").filter(Boolean);
+
+  if (words.length >= 3) {
+    const keyword = words.slice(-2).join(" "); // "que ver"
+    const escapedKeyword = keyword.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+
+    // match ANY verb + keyword
+    const regex = new RegExp(
+      `\\b[\\p{L}áéíóúñüÁÉÍÓÚÑÜ]+\\s+${escapedKeyword}\\b`,
+      "giu"
+    );
+
+    return example.replace(regex, "_____");
+  }
+
+  // 3️⃣ FALLBACK for simple chunks
+// Extract the verb from the chunk
+const parts = chunk.split(" ");
+const verb = parts[parts.length - 1]; // "nota"
+
+// Remove last letter to get verb stem: "not"
+const stem = verb.slice(0, -1);
+
+// Build regex matching ANY conjugation: nota, notan, notó, notaba, notaron...
+const conjRegex = new RegExp(
+  `\\b${parts.slice(0, -1).join("\\s+")}\\s+${stem}[a-záéíóúñü]+\\b`,
+  "gi"
+);
+
+// Replace match with blank
+return example.replace(conjRegex, "_____");
+
+})()}
+
+
+    </div>
+  )}
+
+</div>
+
+
             <div className="card-face card-back text-4xl font-bold text-green-700 flex flex-col justify-center items-center px-6 text-center">
               <div className="flex items-center gap-4 mb-6">
-                <span>{card.back_text}</span>
-                {card.audio_url && (
-                  <button onClick={(e) => { e.stopPropagation(); handlePlayAudio(card.audio_url); }} className="text-5xl hover:scale-125 transition-transform cursor-pointer">
-                    🔊
-                  </button>
-                )}
+
+<span className="text-4xl font-bold text-green-700">
+  {(() => {
+    const txt = card.back_text || "";
+    const slug = card.slug;
+
+    // 🔥 HARD OVERRIDE just for this chunk
+    if (slug === "andale-pues") {
+      return "ándale pues / órale pues"; // exactly how you want it
+    }
+
+    // Keep original if it's a question/exclamation
+    if (txt.trim().startsWith("¿") || txt.trim().startsWith("¡")) {
+      return txt;
+    }
+
+    // Normal behaviour for everything else
+    return formatEnglish(txt);
+  })()}
+</span>
+
+
+
+
+{/* 🔊 Works for WORDS + CHUNKS + AUTO-FALLBACK */}
+{(() => {
+  // Priority:
+  // 1) Supabase audio_url
+  // 2) First audioUrls[] entry (chunks)
+  // 3) Fallback auto path → /audio/chunks/slug.mp3
+
+  const audio =
+    card.audio_url ||
+    (card.audioUrls?.length > 0 ? card.audioUrls[0] : `/audio/chunks/${card.slug}.mp3`);
+
+  return audio ? (
+    <button
+      onClick={(e) => {
+        e.stopPropagation();
+        handlePlayAudio(audio);
+      }}
+      className="text-5xl hover:scale-125 transition-transform cursor-pointer"
+    >
+      🔊
+    </button>
+  ) : null;
+})()}
+
+
               </div>
               {card.example && (
                 <div className="text-2xl font-semibold text-center px-4">
                   <div>{card.example}</div>
-                  {card.example_english && (
-                    <div className="text-xl text-gray-600 italic font-normal mt-2">{card.example_english}</div>
-                  )}
+{card.example_english && (
+  <div className="text-xl text-gray-600 italic font-normal mt-2">
+    {formatEnglish(card.example_english)}
+  </div>
+)}
                 </div>
               )}
             </div>

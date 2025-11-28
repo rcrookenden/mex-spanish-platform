@@ -6,6 +6,7 @@ import confetti from "canvas-confetti";
 import toast from "react-hot-toast";
 import chunks from "../data/chunks";
 import ForumSection from "../components/ForumSection";
+import tagColors from "../lib/tagColors";
 
 export default function ChunkPage({ chunkData }) {
   const [saving, setSaving] = useState(false);
@@ -21,6 +22,33 @@ export default function ChunkPage({ chunkData }) {
   const [draggedWord, setDraggedWord] = useState(null);
   const [isCorrect, setIsCorrect] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [dropIndex, setDropIndex] = useState(null);
+
+    // 🌟🌟🌟 INSERT THIS POPUP FUNCTION HERE 🌟🌟🌟
+  const showChallengePopup = (title, xp) => {
+    const el = document.createElement("div");
+    el.className = `
+      fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2
+      bg-white border-4 border-green-600 rounded-2xl shadow-2xl
+      px-8 py-6 text-center z-[9999]
+      animate-scale-up
+    `;
+    el.innerHTML = `
+      <div class="text-5xl mb-4">🎉</div>
+      <div class="text-2xl font-bold text-green-700 mb-2">Challenge Completed!</div>
+      <div class="text-xl font-semibold">${title}</div>
+      <div class="text-lg text-green-600 mt-2">+${xp} XP</div>
+    `;
+    document.body.appendChild(el);
+
+    setTimeout(() => {
+      el.style.opacity = "0";
+      el.style.transform = "translate(-50%, -50%) scale(0.6)";
+    }, 1400);
+
+    setTimeout(() => el.remove(), 2000);
+  };
+  // 🌟🌟🌟 END POPUP FUNCTION 🌟🌟🌟
 
   const session = useSession();
   const supabase = useSupabaseClient();
@@ -91,14 +119,64 @@ export default function ChunkPage({ chunkData }) {
     e.preventDefault();
   };
 
-  const handleDropToSelected = (e) => {
-    e.preventDefault();
-    if (draggedWord && availableWords.some(w => w.id === draggedWord.id)) {
-      setSelectedWords([...selectedWords, draggedWord]);
-      setAvailableWords(availableWords.filter(w => w.id !== draggedWord.id));
+const handleDropToSelected = (e, targetIndex = null) => {
+  e.preventDefault();
+  if (!draggedWord) return;
+
+  const isAvailable = availableWords.some(w => w.id === draggedWord.id);
+  const isSelected = selectedWords.some(w => w.id === draggedWord.id);
+
+  // INSERT into specific position
+  if (targetIndex !== null) {
+    const updated = [...selectedWords];
+
+    if (isSelected) {
+      const currentIndex = selectedWords.findIndex(w => w.id === draggedWord.id);
+      updated.splice(currentIndex, 1);
+    } else if (isAvailable) {
+      setAvailableWords(prev => prev.filter(w => w.id !== draggedWord.id));
     }
+
+    updated.splice(targetIndex, 0, draggedWord);
+    setSelectedWords(updated);
     setDraggedWord(null);
-  };
+    return;
+  }
+
+  // DEFAULT: append at end
+  if (isAvailable) {
+    setSelectedWords([...selectedWords, draggedWord]);
+    setAvailableWords(availableWords.filter(w => w.id !== draggedWord.id));
+  }
+
+  setDraggedWord(null);
+};
+
+
+  const handleReorderInSelected = (e, targetIndex) => {
+  e.preventDefault();
+
+  if (!draggedWord) return;
+
+  const currentIndex = selectedWords.findIndex(
+    (w) => w.id === draggedWord.id
+  );
+
+  // Only reorder if word is already inside selectedWords
+  if (currentIndex !== -1) {
+    const updated = [...selectedWords];
+
+    // Remove from old position
+    updated.splice(currentIndex, 1);
+
+    // Insert at new position
+    updated.splice(targetIndex, 0, draggedWord);
+
+    setSelectedWords(updated);
+  }
+
+  setDraggedWord(null);
+};
 
   const handleDropToAvailable = (e) => {
     e.preventDefault();
@@ -114,7 +192,10 @@ export default function ChunkPage({ chunkData }) {
       return word.originalIndex === index;
     });
     
-    if (isCorrectOrder && selectedWords.length === availableWords.length + selectedWords.length) {
+    const totalWords = selectedWords.length + availableWords.length;
+
+if (isCorrectOrder && selectedWords.length === totalWords) {
+
       setIsCorrect(true);
       confetti({ particleCount: 100, spread: 70 });
       toast.success("¡Perfecto! 🎉");
@@ -195,6 +276,90 @@ export default function ChunkPage({ chunkData }) {
         });
         toast.error("❌ Could not save flashcard. Please try again.");
       } else {
+
+// 1️⃣ Check status BEFORE updating progress
+let wasCompleted = false;
+try {
+  const { data: beforeRows, error: beforeError } = await supabase
+    .from("user_challenges")
+    .select(`
+      id,
+      is_completed,
+      challenges!inner (
+        challenge_type
+      )
+    `)
+    .eq("user_id", session.user.id)
+    .eq("challenges.challenge_type", "save_chunks");
+
+  if (beforeError) {
+    console.error("❌ Error checking challenge BEFORE update:", beforeError);
+  } else if (beforeRows && beforeRows.length > 0) {
+    wasCompleted = beforeRows.some((row) => row.is_completed);
+  }
+} catch (err) {
+  console.error("❌ Exception in BEFORE challenge check:", err);
+}
+
+// 2️⃣ UPDATE SAVE-CHUNKS CHALLENGE
+const { data: progressData, error: progressError } = await supabase.rpc(
+  "update_challenge_progress",
+  {
+    p_user_id: session.user.id,
+    p_challenge_type: "save_chunks",
+    p_progress_data: { chunks_saved: 1 }
+  }
+);
+
+if (progressError) {
+  console.error("❌ RPC save_chunks error:", JSON.stringify(progressError, null, 2));
+} else {
+  window.dispatchEvent(new CustomEvent("challengesUpdated"));
+}
+
+// 3️⃣ Check status AFTER updating progress — only fire popup if it changed from false → true
+try {
+  const { data: afterRows, error: afterError } = await supabase
+    .from("user_challenges")
+    .select(`
+      is_completed,
+      completed_at,
+      challenges!inner (
+        title,
+        xp_reward,
+        challenge_type
+      )
+    `)
+    .eq("user_id", session.user.id)
+    .eq("challenges.challenge_type", "save_chunks");
+
+  console.log(
+    "🧪 AFTER update, challenge rows:",
+    JSON.stringify(afterRows, null, 2),
+    afterError
+  );
+
+  if (!afterError && afterRows && afterRows.length > 0) {
+    const completedRow = afterRows.find((row) => row.is_completed);
+
+    // 👉 Only show popup if:
+    // - it was NOT completed before
+    // - and now there's a completed row
+    if (!wasCompleted && completedRow && completedRow.challenges) {
+      showChallengePopup(
+        completedRow.challenges.title,
+        completedRow.challenges.xp_reward
+      );
+    }
+  }
+} catch (err) {
+  console.error("❌ Challenge popup AFTER check error:", err);
+}
+
+
+
+
+
         // NEW: Update league XP
         const gainedXP = 5;
         
@@ -303,6 +468,7 @@ export default function ChunkPage({ chunkData }) {
         
         toast.success("✅ Flashcard saved! 🎉 +5 XP");
         setSaved(true);
+        window.dispatchEvent(new CustomEvent("challengesUpdated"));
       }
     } catch (err) {
       console.error("Unexpected error:", err);
@@ -339,6 +505,27 @@ export default function ChunkPage({ chunkData }) {
       initializeSentenceGame();
     }
   }, [showMakeSentence, chunkData.examples]);
+
+    useEffect(() => {
+    if (showMakeSentence && chunkData.examples && chunkData.examples.length > 0) {
+      initializeSentenceGame();
+    }
+  }, [showMakeSentence, chunkData.examples]);
+
+
+  // -------------------------
+  // STEP 1 — SPLIT TAGS HERE
+  // -------------------------
+  const generationLabels = ["Boomers 👶", "Gen X 🎸", "Millennial 😎", "Gen Z 👾"];
+
+  const generationTags = chunkData.tags.filter(t =>
+    generationLabels.includes(t.label)
+  );
+
+  const otherTags = chunkData.tags.filter(t =>
+    !generationLabels.includes(t.label)
+  );
+  // -------------------------
 
   // Loading skeleton
   if (loading) {
@@ -417,7 +604,9 @@ export default function ChunkPage({ chunkData }) {
                 {chunkData.title}
               </h1>
               <div className="flex items-center gap-2 justify-center sm:justify-start w-full sm:w-auto">
-                <span className="text-[1.8rem] text-gray-500 font-medium">(chunk)</span>
+                <span className="text-[1.8rem] text-gray-500 font-medium">
+  ({chunkData.category || "chunk"})
+</span>
                 <button
                   onClick={() => chunkData.audioUrls?.[0] && new Audio(chunkData.audioUrls[0]).play()}
                   className="text-4xl ml-3 hover:scale-125 transition-transform cursor-pointer hover:animate-pulse"
@@ -429,16 +618,38 @@ export default function ChunkPage({ chunkData }) {
           </div>
 
           <div className="border-b-4 border-red-600 mt-1 mb-5"></div>
-          <div className="flex gap-3 flex-wrap pl-1 mb-0">
-            {chunkData.tags.map((tag, index) => (
-              <span
-                key={index}
-                className={`${tag.color} px-3 py-1 rounded-full text-md font-semibold`}
-              >
-                {tag.label}
-              </span>
-            ))}
-          </div>
+{/* FIRST LINE — all NON-generation tags */}
+<div className="flex gap-4 flex-wrap pl-1 mb-3">
+  {otherTags.map((tag, index) => {
+    const colorClass = tagColors[tag.label] || "bg-gray-300 text-black";
+    return (
+      <span
+        key={index}
+        className={`${colorClass} px-3 py-1 rounded-full text-md font-semibold`}
+      >
+        {tag.label}
+      </span>
+    );
+  })}
+</div>
+
+{/* SECOND LINE — GENERATION TAGS ONLY */}
+{generationTags.length > 0 && (
+  <div className="flex gap-4 flex-wrap pl-1 mt-5">
+    {generationTags.map((tag, index) => {
+      const colorClass = tagColors[tag.label] || "bg-gray-300 text-black";
+      return (
+        <span
+          key={`gen-${index}`}
+          className={`${colorClass} px-3 py-1 rounded-full text-md font-semibold`}
+        >
+          {tag.label}
+        </span>
+      );
+    })}
+  </div>
+)}
+
         </div>
 
         {/* TWO COLUMN CONTENT */}
@@ -447,19 +658,75 @@ export default function ChunkPage({ chunkData }) {
           {/* LEFT COLUMN - order-1 on mobile */}
           <div className="flex flex-col gap-6 order-1">
             
-            {/* What it means */}
-            <section className="bg-gray-100 p-6 rounded-xl">
-              <h2 className="text-3xl font-bold text-green-700 mb-3">🧠 What it means</h2>
-              <p className="text-xl font-semibold whitespace-pre-line">{chunkData.meaning}</p>
-            </section>
+{/* What it means */}
+<section className="bg-gray-100 p-6 rounded-xl">
+  <h2 className="text-3xl font-bold text-green-700 mb-3">🧠 What it means</h2>
+  <p
+    className="text-lg whitespace-pre-line"
+    dangerouslySetInnerHTML={{ __html: chunkData.meaning }}
+  />
+</section>
+
 
             {/* When to whip it out */}
             <section className="bg-gray-100 p-6 rounded-xl">
               <h2 className="text-3xl font-bold text-green-700 mb-3">🌪️ When to whip it out</h2>
-              <p
-                className="text-lg whitespace-pre-line"
-                dangerouslySetInnerHTML={{ __html: chunkData.explanation }}
+<div className="space-y-6 text-lg">
+{chunkData.explanation
+  .split("</p>")
+  .filter(block => block.trim() !== "")
+  .map((block, index) => {
+    const html = block + "</p>";
+
+    // ✔ LOGIC GOES HERE — OUTSIDE JSX
+const strongCount = (html.match(/<strong>/g) || []).length;
+const emCount = (html.match(/<em>/g) || []).length;
+
+// Detect dialogue lines (start with em dash)
+const containsDialogue = html.includes("—");
+
+// Only treat as an audio example if it's NOT a conversation
+const isExample = !containsDialogue && strongCount === 1 && emCount === 1;
+
+
+    return (
+      <div key={index} className="mb-4">
+        {isExample ? (
+          <>
+            <div className="flex items-center gap-2">
+              <span
+                dangerouslySetInnerHTML={{
+                  __html: html.match(/<strong>[\s\S]*?<\/strong>/)?.[0] || "",
+                }}
               />
+              <button
+                onClick={() => {
+                  if (chunkData.audioUrls?.[index]) {
+                    new Audio(chunkData.audioUrls[index]).play();
+                  }
+                }}
+                className="text-xl hover:scale-110 transition-transform cursor-pointer relative top-[2px]"
+              >
+                🔊
+              </button>
+            </div>
+
+            <div
+              className="text-gray-600 italic mt-1"
+              dangerouslySetInnerHTML={{
+                __html: html.match(/<em>[\s\S]*?<\/em>/)?.[0] || "",
+              }}
+            />
+          </>
+        ) : (
+          <div dangerouslySetInnerHTML={{ __html: html }} />
+        )}
+      </div>
+    );
+  })}
+
+</div>
+
             </section>
 
             {/* Buttons - order-3 on mobile */}
@@ -496,10 +763,16 @@ export default function ChunkPage({ chunkData }) {
           <div className="flex flex-col gap-6 order-2">
             
             {/* Tone */}
-            <section className="bg-gray-100 p-6 rounded-xl">
-              <h2 className="text-3xl font-bold text-green-700 mb-3">⚠️ Tone</h2>
-              <p className="text-lg whitespace-pre-line">{chunkData.tone || "Information about tone coming soon!"}</p>
-            </section>
+<section className="bg-gray-100 p-6 rounded-xl">
+  <h2 className="text-3xl font-bold text-green-700 mb-3">⚠️ Tone</h2>
+  <p
+    className="text-lg whitespace-pre-line"
+    dangerouslySetInnerHTML={{
+      __html: (chunkData.tone || "").replace(/\n/g, "<br>")
+    }}
+  />
+</section>
+
 
             {/* Similar chunks - with improved formatting */}
             <section className="bg-gray-100 p-6 rounded-xl">
@@ -509,12 +782,12 @@ export default function ChunkPage({ chunkData }) {
                   {chunkData.similarChunks.split('\n').map((chunk, index) => {
                     const cleanChunk = chunk.replace('• ', '').trim();
                     return cleanChunk ? (
-                      <span 
-                        key={index} 
-                        className="bg-white px-4 py-2 rounded-full text-sm border border-gray-300 hover:border-green-500 cursor-pointer transition-colors"
-                      >
-                        {cleanChunk}
-                      </span>
+<span
+  key={index}
+  className="bg-white px-4 py-2 rounded-full text-sm border border-gray-300 hover:border-green-500 cursor-pointer transition-colors"
+  dangerouslySetInnerHTML={{ __html: cleanChunk }}
+/>
+
                     ) : null;
                   })}
                 </div>
@@ -544,47 +817,29 @@ export default function ChunkPage({ chunkData }) {
             </div>
 
             {/* Extra Examples */}
-            <div>
-              <button
-                onClick={() => setShowExamples(!showExamples)}
-                className="w-full bg-red-600 hover:bg-red-700 text-white px-6 py-4 rounded-full font-bold text-xl cursor-pointer transition-colors"
-              >
-                Extra Examples {showExamples ? "−" : "+"}
-              </button>
-              {showExamples && (
-                <div className="mt-2 p-6 bg-gray-100 rounded-xl">
-                  <ul className="space-y-6 text-lg font-semibold">
-                    {chunkData.examples.map((ex, i) => (
-                      <li key={i} className="relative pl-6">
-                        <span className="absolute left-0">-</span>
-                        <div className="ml-2 whitespace-pre-wrap">
-                          <div className="flex items-center gap-2">
-                            <span>{ex.spanish}</span>
-                            <button
-                              onClick={() => {
-                                if (chunkData.audioUrls && chunkData.audioUrls[i]) {
-                                  new Audio(chunkData.audioUrls[i]).play();
-                                }
-                              }}
-                              className={`text-2xl cursor-pointer hover:animate-pulse ${
-                                chunkData.audioUrls && chunkData.audioUrls[i]
-                                  ? "hover:scale-125 transition-transform"
-                                  : "opacity-30 cursor-not-allowed"
-                              }`}
-                            >
-                              🔊
-                            </button>
-                          </div>
-                          <span className="block mt-1 text-gray-600 italic font-normal whitespace-pre-wrap">
-                            {ex.english}
-                          </span>
-                        </div>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              )}
-            </div>
+          <button
+  onClick={() => setShowExamples(!showExamples)}
+  className="w-full bg-red-600 hover:bg-red-700 text-white px-6 py-4 rounded-full font-bold text-xl cursor-pointer transition-colors"
+>
+  Extra Examples {showExamples ? "−" : "+"}
+</button>
+{showExamples && (
+  <div className="mt-2 p-6 bg-gray-100 rounded-xl">
+    <ul className="space-y-4 text-lg font-semibold list-none pl-0">
+      {chunkData.examples.map((ex, i) => (
+        <li key={i} className="pl-0">
+          <div className="ml-2 whitespace-pre-wrap">
+            <span>{ex.spanish}</span>
+            <span className="block text-gray-600 italic font-normal whitespace-pre-wrap">
+              {ex.english}
+            </span>
+          </div>
+        </li>
+      ))}
+    </ul>
+  </div>
+)}
+
 
             {/* Make a Sentence */}
             <div>
@@ -630,19 +885,39 @@ export default function ChunkPage({ chunkData }) {
                        onDragOver={handleDragOver}
                        onDrop={handleDropToSelected}>
                     <div className="flex flex-wrap gap-2">
-                      {selectedWords.map((word) => (
-                        <div
-                          key={word.id}
-                          draggable
-                          onDragStart={(e) => handleDragStart(e, word)}
-                          className="px-3 py-2 bg-green-600 text-white rounded-lg cursor-move hover:bg-green-700 transition-colors"
-                        >
-                          {word.text}
-                        </div>
-                      ))}
-                      {selectedWords.length === 0 && (
-                        <p className="text-gray-400 italic">Drop words here...</p>
-                      )}
+{selectedWords.map((word, index) => (
+  <div key={word.id} className="flex items-center">
+
+    {/* Drop zone BEFORE this word */}
+    <div
+      onDragOver={handleDragOver}
+      onDrop={(e) => handleDropToSelected(e, index)}
+      className="w-4 h-10"
+    />
+
+    {/* The actual draggable word */}
+    <div
+      draggable
+      onDragStart={(e) => handleDragStart(e, word)}
+      className="px-3 py-2 bg-green-600 text-white rounded-lg cursor-move hover:bg-green-700 transition-colors"
+    >
+      {word.text}
+    </div>
+  </div>
+))}
+
+{/* If no words yet */}
+{selectedWords.length === 0 && (
+  <p className="text-gray-400 italic">Drop words here...</p>
+)}
+
+{/* Drop zone AFTER the last word */}
+<div
+  onDragOver={handleDragOver}
+  onDrop={(e) => handleDropToSelected(e, selectedWords.length)}
+  className="w-4 h-10"
+/>
+
                     </div>
                   </div>
 
