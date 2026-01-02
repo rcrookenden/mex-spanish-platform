@@ -6758,7 +6758,428 @@ const chunks = [
   ],
 
   audioUrls: []
+},
+
+{
+  slug: "que-crees",
+  title: "¿Qué crees?",
+  category: "useful questions",
+
+  meaning:
+    "👉 <strong>Guess what?</strong>\n\n" +
+    "Yep, it’s just a super common way to grab someone’s attention before dropping some news, be it good, bad, shocking, or funny.\n\n\n" +
+    "💡 <strong>¿Qué crees?</strong> is generally more urgent/direct than <strong>¿Y qué crees?</strong>, which has more storytelling flair.",
+
+  explanation:
+    "<p class='text-xl font-semibold mt-2 mb-4'>Whenever you’re about to reveal information and you want the listener hooked:</p>" +
+
+    "<p class='mb-4'><strong>¿Qué crees? Me encontré a tu primo en el súper.</strong><br>" +
+    "<em>Guess what? I ran into your cousin at the supermarket.</em></p>" +
+
+    "<p class='mb-4'><strong>¿Qué crees que me dijo?</strong><br>" +
+    "<em>What do you think she told me?</em></p>",
+
+  tone:
+    "✅ Informal, friendly, and great for storytelling.\n\n" +
+    "✅ Works for good <strong>\AND</strong>\ bad news.\n\n" +
+    "🚫 Not for formal settings, it’s 100% conversational.",
+
+  examples: [
+    {
+      spanish: "¿Qué crees? ¡Vamos a la playa!",
+      english: "Guess what? We’re going to the beach!"
+    },
+    {
+      spanish: "¿Qué crees que vaya a venir en el examen?",
+      english: "What do you think’s going to be in the exam?"
+    },
+    {
+      spanish: "— ¿Qué crees? (real-life example 🎯)\n— ¿Qué pasa, mi amor?",
+      english: "— Guess what?\n— What happened, sweetheart?"
+    }
+  ],
+
+  similarChunks:
+    "<strong>¿Y qué crees?</strong>\n" +
+    "<strong>Adivina qué</strong>\n" +
+    "<strong>A qué no sabes</strong>\n" +
+    "<strong>A que no imaginas que</strong>\n" +
+    "<strong>A que no te imaginas</strong>\n" +
+    "<strong>No sabes</strong>",
+
+  tags: [
+    { label: "B1 (¡Ya le agarras la onda!)" },
+    { label: "Used EVERYWHERE 🇲🇽" },
+    { label: "Colloquial 🗯️" }
+  ],
+},
+
+{
+  slug: "que-se-te-ofrece",
+  title: "¿Qué se te ofrece?",
+  category: "useful questions",
+
+  meaning:
+    "This is what my <strong>suegra</strong> always says to me when I wander into the kitchen looking for food.\n\n" +
+    "Yep, she knows I’ve got a bit of a taco habit, lol.\n\n" +
+    "It just means:\n" +
+    "👉 <strong>How can I help you? / What do you need?</strong>\n\n\n" +
+    "So yeah, it’s basically the go-to polite way to ask someone what they want / need / are looking for, especially in shops, restaurants, etc.\n\n" +
+    "It’s friendly, service-oriented, and sounds very local.\n\n\n" +
+    "💡 You might also hear it being used sarcastically when someone seems a bit lost or is snooping around somewhere they shouldn't!",
+
+  explanation:
+    "<p class='text-xl font-semibold mt-2 mb-4'>Whenever you're the one offering help!</p>" +
+    "<p class='text-xl font-semibold mt-2 mb-4'>Think working in a shop, hosting guests, or when someone enters your kitchen looking hungry 😂:</p>" +
+
+    "<strong>— ¿Qué se le ofrece?</strong><br>" +
+    "<strong>— Necesito ayuda con la llave de mi habitación.</strong><br>" +
+    "<em>— How can I help?</em><br>" +
+    "<em>— I need help with my room key.</em></p>",
+
+  tone:
+    "✅ Great for everyday service situations or with friends/family.\n\n" +
+    "✅ Sounds warm and attentive.",
+
+  examples: [
+    {
+      spanish: "¿Buenas tardes, qué se te ofrece?",
+      english: "Good afternoon, how can I help you?"
+    }
+  ],
+
+  similarChunks:
+    "<strong>¿En qué te puedo ayudar?</strong>\n" +
+    "<strong>¿Qué necesitas?</strong>\n" +
+    "<strong>¿Te ofrezco algo?</strong>",
+
+  tags: [
+    { label: "B1 (¡Ya le agarras la onda!)" },
+    { label: "Used EVERYWHERE 🇲🇽" },
+    { label: "Standard Spanish 😌" }
+  ],
+},
+
+{
+  slug: "como-le-hago-para",
+  title: "¿Cómo le hago para…?",
+  category: "useful questions",
+
+  meaning:
+    "This is a super Mexican way to ask for instructions or advice.\n\n" +
+    "It literally translates to <strong>How do I make it so that…?</strong>, but in everyday Mex Spanish, it just means:\n" +
+    "👉 <strong>How do I…? / What do I have to do to…? / How do I go about…?</strong>\n\n\n" +
+    "💡The <strong>le</strong> doesn't refer to anyone (or anything!) specific, it's just part of the expression!",
+
+  explanation:
+    "<p class='text-xl font-semibold mt-2 mb-4'>Whenever you’re asking someone how to do something:</p>" +
+
+    "<p class='mb-4'><strong>¿Cómo le hago para sacar mi pasaporte?</strong><br>" +
+    "<em>How do I go about getting a passport?</em></p>" +
+
+    "<p class='mb-6'><strong>¿Cómo le hago para convencerla?</strong><br>" +
+    "<em>How do I convince her?</em></p>" +
+
+    "<hr class='my-8 border-t-2 border-gray-400' />" +
+
+    "<p class='text-xl font-semibold mt-2 mb-4'>It's also sometimes used to express deep frustration (a favorite of parents and teachers):</p>" +
+
+    "<p class='mb-4'><strong>¿Cómo le hago para que dejen los celulares y pongan atención?</strong><br>" +
+    "<em>How do I get you to put down your cell phones and pay attention?</em></p>" +
+
+    "<p class='mb-6'><strong>¿Cómo le hago para que me entiendas? ¡Ya te lo dije mil veces!</strong><br>" +
+    "<em>How can I make you understand? I've told you this a thousand times!</em></p>",
+
+  tone:
+    "✅ Informal, everyday Mexican Spanish.\n\n" +
+    "✅ Perfect for casual problem-solving.\n\n" +
+    "🚫 In formal speech, you’d say <strong>¿Cómo puedo…?</strong> or <strong>¿Qué debo hacer para…?</strong>",
+
+  examples: [
+    {
+      spanish: "¿Cómo le hago para llegar al centro?",
+      english: "How do I get downtown?"
+    },
+    {
+      spanish: "¿Cómo le hacen para meter el hielo a estas botellas?",
+      english: "How do they get the ice in these bottles?"
+    },
+    {
+      spanish: "¿Cómo chingados le hago para humillar a mi hermano en televisión nacional?  (real-life example 🎯)",
+      english: "How the fuck am I gonna humiliate my brother on national television?"
+    }
+  ],
+
+  similarChunks:
+    "<strong>¿Y cómo le hago para…?</strong>\n" +
+    "<a href=\"/chunk/como-le-hago\" class=\"text-blue-700\"><strong>¿Cómo le hago?</strong></a>\n" +
+    "<strong>¿Cómo le hiciste?</strong>\n" +
+    "<strong>Me enseñas a</strong>\n" +
+    "<strong>¿Cómo puedo…?</strong>",
+
+  tags: [
+    { label: "B2 (¡Nivelazo!)" },
+    { label: "Used EVERYWHERE 🇲🇽" },
+    { label: "Colloquial 🗯️" }
+  ],
+},
+
+{
+  slug: "como-le-hago",
+  title: "¿Cómo le hago?",
+  category: "useful questions",
+
+  meaning:
+    "<strong>¿Cómo le hago?</strong> is just an ultra-casual, native way to ask how to go about doing something.\n\n" +
+    "It translates to something like:\n" +
+    "👉 <strong>How do I do it? / What do I do?</strong>\n\n\n" +
+    "💡 It’s often used when someone’s feeling overwhelmed/lost re. a task.\n\n" +
+    "I heard it the other day in the supermarket when an old dude didn’t know how to use the self-checkout machine, for example.",
+
+  explanation:
+    "<p class='text-xl font-semibold mt-2 mb-4'>Whenever you want to ask how to do something:</p>" +
+
+    "<p class='mb-4'><strong>Quiero vender mi coche. ¿Cómo le hago?</strong><br>" +
+    "<em>I want to sell my car. How do I do it?</em></p>" +
+
+    "<p class='mb-6'><strong>Tengo que convencer a mi jefe… ¿cómo le hago?</strong><br>" +
+    "<em>I need to convince my boss… what do I do?</em></p>",
+
+  tone:
+    "✅ Very informal, very Mexican.\n\n" +
+    "✅ Perfect for casual conversation and asking friends for tips.\n\n" +
+    "🚫 Not used in formal contexts!",
+
+  examples: [
+    {
+      spanish: "Quiero ahorrar para un viaje, ¿cómo le hago, wey?",
+      english: "I want to save up for a trip. How do I go about it, man?"
+    }
+  ],
+
+  similarChunks:
+    "<a href=\"/chunk/como-le-hago-para\" class=\"text-blue-700\"><strong>¿Cómo le hago para…?</strong></a>\n" +
+    "<strong>¿Cómo le hicieron?</strong>\n" +
+    "<strong>Me enseñas a</strong>\n" +
+    "<strong>¿Cómo puedo…?</strong>",
+
+  tags: [
+    { label: "B1 (¡Ya le agarras la onda!)" },
+    { label: "Used EVERYWHERE 🇲🇽" },
+    { label: "Colloquial 🗯️" }
+  ],
+},
+
+{
+  slug: "tu-que-te-crees",
+  title: "¿Tú qué te crees?",
+  category: "useful questions",
+
+  meaning:
+    "This is an <strong>EXCELLENT</strong> chunk for when you want to call someone out for acting arrogant, entitled, etc.\n\n" +
+    "It just means:\n" +
+    "👉 <strong>Who do you think you are?</strong>\n\n\n" +
+    "💡It’s often (but not always!) followed by an example of a famous person (like <strong>“Who do you think you are? The President?”</strong>)",
+
+  explanation:
+    "<p class='text-xl font-semibold mt-2 mb-4'>Whenever you want to confront someone’s inflated ego, bossy behavior, or nonsense:</p>" +
+
+    "<p class='mb-4'><strong>¿Tú qué te crees, hablándome así?</strong><br>" +
+    "<em>Who do you think you are, talking to me like that?</em></p>" +
+
+    "<p class='mb-6'><strong>¿Tú qué te crees? ¿Messi?</strong><br>" +
+    "<em>Who do you think you are? Messi?</em></p>",
+
+  tone:
+    "✅ Informal, everyday Mexican Spanish.\n\n" +
+    "✅ Can be teasing or confrontational… tone of voice is <strong>EVERYTHING</strong> here.",
+
+  examples: [
+    {
+      spanish: "¿Tú qué te crees? ¿Por qué me estás dando órdenes?",
+      english: "Who do you think you are?! Why are you bossing me around?"
+    },
+    {
+      spanish: "¿Tú qué te crees? ¿José Ramón Fernández o qué? (real-life example 🎯)",
+      english: "Who do you think you are? José Ramón Fernández or what?"
+    }
+  ],
+
+  similarChunks:
+    "<strong>¿Qué te crees?</strong>\n" +
+    "<strong>Se cree mucho</strong>\n" +
+    "<strong>¿Te crees muy muy, verdad?</strong>\n" +
+    "<strong>¿Te crees mucho?</strong>\n" +
+    "<strong>¿Pues quién te crees?</strong>\n" +
+    "<strong>Ni que fueras</strong>",
+
+  tags: [
+    { label: "B2 (¡Nivelazo!)" },
+    { label: "Used EVERYWHERE 🇲🇽" },
+    { label: "Colloquial 🗯️" }
+  ],
+},
+{
+  slug: "tu-que-crees",
+  title: "¿Tú qué crees?",
+  category: "useful questions",
+
+  meaning:
+    "Super chunk time!! 🎉🍾\n\n" +
+    "<strong>¿Tú qué crees?</strong> is a <strong>SUPER COMMON</strong>, colloquial way to ask someone’s opinion in Mexican Spanish.\n\n" +
+    "It's a bit like saying:\n" +
+    "👉 <strong>What do you think?</strong>\n\n" +
+    "It’s friendly, conversational, and works in most everyday situations!",
+
+  explanation:
+    "<p class='text-xl font-semibold mt-2 mb-4'>Whenever you want to ask someone’s opinion in a casual sorta way:</p>" +
+
+    "<p class='mb-4'><strong>¿Tú qué crees, deberíamos irnos ya?</strong><br>" +
+    "<em>What do you think? Should we leave now?</em></p>" +
+
+    "<p class='mb-6'><strong>Siento que el café sabe medio raro…¿tú qué crees?</strong><br>" +
+    "<em>I feel like the coffee tastes kinda weird…what do you think?</em></p>",
+
+  tone:
+    "✅ Informal but polite.\n\n" +
+    "✅ Great for everyday conversations.\n\n" +
+    "🚫 <strong>NOT</strong> the go-to for formal writing.",
+
+  examples: [
+    {
+      spanish: "Yo creo que tu papá quería otra niña. ¿Tú qué crees?",
+      english: "I think your Dad wanted another girl (baby). What do you think?"
+    },
+    {
+      spanish: "¿Tú qué crees, le digo o no?",
+      english: "What do you think, should I tell him or not?"
+    }
+  ],
+
+  similarChunks:
+    "<strong>¿Cómo ves?</strong>\n" +
+    "<strong>¿Qué te parece?</strong>\n" +
+    "<strong>¿Qué opinas?</strong>\n" +
+    "<strong>¿Qué piensas?</strong>\n" +
+    "<strong>¿Te late?</strong>\n" +
+    "<strong>¿O tú qué crees?</strong>\n" +
+    "<strong>¿Qué dices?</strong>\n" +
+    "<strong>¿No crees?</strong>",
+
+  tags: [
+    { label: "B1 (¡Ya le agarras la onda!)" },
+    { label: "Used EVERYWHERE 🇲🇽" },
+    { label: "Colloquial 🗯️" }
+  ],
+},
+{
+  slug: "me-crees",
+  title: "¿Me crees?",
+  category: "useful questions",
+
+  meaning:
+    "In Mexican Spanish, this is the go-to way to check if someone thinks you’re telling the truth.\n\n" +
+    "It normally translates well to:\n" +
+    "👉 <strong>Do you believe me? / Can you believe it?</strong>\n\n\n" +
+    "💡 Tone is everything here! It can sound pleading, curious, playful, or dramatic depending on how you say it!",
+
+  explanation:
+    "<p class='text-xl font-semibold mt-2 mb-4'>Whenever you want to check if someone believes you, or add emphasis to a truth that might be hard to believe:</p>" +
+
+    "<p class='mb-4'><strong>Te juro que no fui yo. ¿Me crees?</strong><br>" +
+    "<em>I swear it wasn't me. You believe me, right?</em></p>" +
+
+    "<p class='mb-6'><strong>¡Me saqué la lotería! ¿Me crees?</strong><br>" +
+    "<em>I won the lottery! Can you believe it?</em></p>",
+
+  tone:
+    "✅ Super common in everyday conversation.\n\n" +
+    "✅ Works in friendly chats <strong>AND</strong> in more serious contexts.",
+
+  examples: [
+    {
+      spanish: "Me dejó plantado… ¿me crees?",
+      english: "He stood me up… can you believe it?"
+    }
+  ],
+
+  similarChunks:
+    "<strong>¿Me crees, verdad?</strong>\n" +
+    "<strong>¿Sí, me crees?</strong>\n" +
+    "<strong>¿Me crees o no?</strong>\n" +
+    "<strong>¿Tú crees?</strong>\n" +
+    "<strong>¿No me crees?</strong>\n" +
+    "<strong>¿Me creerías si…?</strong>\n" +
+    "<strong>¿Crees?</strong>",
+
+  tags: [
+    { label: "B1 (¡Ya le agarras la onda!)" },
+    { label: "Used EVERYWHERE 🇲🇽" },
+    { label: "Colloquial 🗯️" }
+  ],
+},
+
+{
+  slug: "que-te-pasa",
+  title: "¿Qué te pasa?",
+  category: "useful questions",
+
+  meaning:
+    "This one’s a super common (and universal!) way to ask if someone’s upset, acting weird, or in a bad mood.\n\n" +
+    "👉 <strong>What’s wrong with you? / What’s the matter? / What’s your problem?</strong>\n\n\n" +
+    "💡Tone is literally of the essence here! Said gently, it’s <strong>“What’s wrong?”</strong>; said sharply, it’s <strong>“What’s your problem?”</strong> (eek!).\n",
+
+  explanation:
+    "<p class='text-xl font-semibold mt-2 mb-4'>Whenever you want to ask why someone looks sad or is acting off:</p>" +
+
+    "<p class='mb-4'><strong>¿Qué te pasa, wey? Te ves todo bajoneado.</strong><br>" +
+    "<em>What’s the matter, dude? You look really down.</em></p>" +
+
+    "<hr class='my-8 border-t-2 border-gray-400' />" +
+
+    "<p class='text-xl font-semibold mt-2 mb-4'>But it can also be used more aggressively to call out annoying behavior:</p>" +
+
+    "<p class='mb-6'><strong>Oye, ¿qué te pasa? No son tus cosas</strong><br>" +
+    "<em>Hey, what’s wrong with you? That’s not your stuff.</em></p>",
+
+  tone:
+    "✅ Neutral if said with concern.\n\n" +
+    "✅ Can be confrontational if said with a sharper tone.",
+
+  examples: [
+    {
+      spanish: "Te ves triste… ¿qué te pasa?",
+      english: "You look sad… what’s wrong?"
+    },
+    {
+      spanish: "¿Y ahora qué te pasa?",
+      english: "Now what’s wrong?"
+    }
+  ],
+
+  similarChunks:
+    "<strong>¿Qué tienes?</strong>\n" +
+    "<strong>¿Qué te pasó?</strong>\n" +
+    "<strong>¿Qué sucede?</strong>\n" +
+    "<strong>¿Qué traes?</strong>\n" +
+    "<strong>¿Qué onda contigo?</strong>\n" +
+    "<strong>¿Estás bien?</strong>\n" +
+    "<strong>¿Todo bien?</strong>\n" +
+    "<strong>¿Qué mosca te picó?</strong>\n" +
+    "<strong>¿Y ahora?</strong>",
+
+  tags: [
+    { label: "A2 (¡Vas bien!)" },
+    { label: "Used EVERYWHERE 🇲🇽" },
+    { label: "Standard Spanish 😌" }
+  ],
 }
+
+
+
+
+
+
 
 
 

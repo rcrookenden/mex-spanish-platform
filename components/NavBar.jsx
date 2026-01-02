@@ -4,11 +4,11 @@ import { useRouter } from "next/router";
 import confetti from "canvas-confetti";
 import words from "../data/words";
 import chunks from "../data/chunks";
-import { useSession } from "@supabase/auth-helpers-react";
+import { useSession } from "next-auth/react";
 
 export default function NavBar() {
   const router = useRouter();
-  const session = useSession();
+  const { data: session } = useSession();
 
   const handleRandom = (type) => {
     const list = type === "word" ? words : chunks;
@@ -23,7 +23,7 @@ export default function NavBar() {
         href="/"
         className="font-bold text-green-700 aztec text-xl md:text-2xl hover:scale-105 transition-transform"
       >
-        🌵 Mex Spanish Dict 💀
+        🌵 The MexiVerse 💀
       </Link>
 
       <div className="flex gap-2 md:gap-4 items-center">

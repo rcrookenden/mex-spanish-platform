@@ -3,13 +3,15 @@ import { useEffect, useState } from "react";
 import Head from "next/head";
 import words from "../data/words";
 import confetti from "canvas-confetti";
-import { useSupabaseClient, useSession } from "@supabase/auth-helpers-react";
+import { useSupabaseClient } from "@supabase/auth-helpers-react";
+import { useSession, signIn, signOut } from "next-auth/react";
 import Link from "next/link";
 
 
 export default function Home() {
   const supabase = useSupabaseClient();
-  const session = useSession();
+  const { data: session, status } = useSession();
+
 
   const slugs = words.map((w) => w.slug.toLowerCase());
   const [shake, setShake] = useState(false);
@@ -22,83 +24,81 @@ export default function Home() {
     return () => clearTimeout(t);
   }, []);
 
-  /* fetch daily XP from localStorage */
-  useEffect(() => {
-    if (!session?.user?.id) {
-      setDailyXP(0);
-      return;
-    }
+/* fetch daily XP from localStorage */
+useEffect(() => {
+  if (!session?.user?.email) {
+    setDailyXP(0);
+    return;
+  }
 
-    const updateDailyXP = () => {
-      const today = new Date().toISOString().slice(0, 10);
-      let stored = JSON.parse(localStorage.getItem("reviewTracker")) || { 
-        date: today, 
-        count: 0, 
-        xp: 0, 
-        user_id: session.user.id 
-      };
-
-      // If a new user logs in, reset tracker
-      if (stored.user_id !== session.user.id) {
-        stored = { date: today, count: 0, xp: 0, user_id: session.user.id };
-        localStorage.setItem("reviewTracker", JSON.stringify(stored));
-      }
-
-      // If new day, reset counts
-      if (stored.date !== today) {
-        stored.date = today;
-        stored.count = 0;
-        stored.xp = 0;
-        stored.user_id = session.user.id;
-        localStorage.setItem("reviewTracker", JSON.stringify(stored));
-      }
-
-      setDailyXP(stored.xp || 0);
+  const updateDailyXP = () => {
+    const today = new Date().toISOString().slice(0, 10);
+    let stored = JSON.parse(localStorage.getItem("reviewTracker")) || {
+      date: today,
+      count: 0,
+      xp: 0,
+      user_email: session.user.email,
     };
 
-    // Update immediately
-    updateDailyXP();
+    if (stored.user_email !== session.user.email) {
+      stored = { date: today, count: 0, xp: 0, user_email: session.user.email };
+      localStorage.setItem("reviewTracker", JSON.stringify(stored));
+    }
 
-    // Set up interval to check for localStorage changes
-    const interval = setInterval(updateDailyXP, 1000);
+    if (stored.date !== today) {
+      stored = { date: today, count: 0, xp: 0, user_email: session.user.email };
+      localStorage.setItem("reviewTracker", JSON.stringify(stored));
+    }
 
-    return () => clearInterval(interval);
-  }, [session?.user?.id]);
+    setDailyXP(stored.xp || 0);
+  };
+
+  updateDailyXP();
+  const interval = setInterval(updateDailyXP, 1000);
+
+  return () => clearInterval(interval);
+}, [session?.user?.email]);
+
 
   /* fetch username + avatar + xp */
   useEffect(() => {
     const fetchProfile = async () => {
       if (!session?.user) return;
-      const { data } = await supabase
-        .from("profiles")
-        .select("username, avatar_url, xp")
-        .eq("id", session.user.id)
-        .single();
+const { data } = await supabase
+  .from("profiles")
+  .select("username, avatar_url, xp")
+  .eq("email", session.user.email)
+  .single();
       if (data) setProfile(data);
     };
     fetchProfile();
     
     // Subscribe to realtime XP updates
-    const subscription = supabase
-      .channel('profile-xp-updates')
-      .on('postgres_changes', {
-        event: 'UPDATE',
-        schema: 'public',
-        table: 'profiles',
-        filter: `id=eq.${session?.user?.id}`
-      }, (payload) => {
-        setProfile(prev => ({ ...prev, xp: payload.new.xp }));
-      })
-      .subscribe();
+const subscription = supabase
+  .channel("profile-xp-updates")
+  .on(
+    "postgres_changes",
+    {
+      event: "UPDATE",
+      schema: "public",
+      table: "profiles",
+      filter: `email=eq.${session?.user?.email}`,
+    },
+    (payload) => {
+      setProfile((prev) => ({ ...prev, xp: payload.new.xp }));
+    }
+  )
+  .subscribe();
+
 
     return () => {
       subscription.unsubscribe();
     };
   }, [session, supabase]);
 
-  const handleSignIn = () =>
-    supabase.auth.signInWithOAuth({ provider: "google" });
-  const handleSignOut = () => supabase.auth.signOut();
+  const handleSignIn = () => signIn("google", { callbackUrl: "/" });
+const handleSignOut = () => signOut();
+
 
   // Calculate level and progress
   const level = profile?.xp ? Math.floor(profile.xp / 500) : 0;
@@ -113,7 +113,7 @@ export default function Home() {
   return (
     <div className="min-h-screen bg-[#f7f7f7] text-gray-800 p-6">
       <Head>
-        <title>Mex Spanish Dict 💀</title>
+        <title>The MexiVerse 💀</title>
         <link
           href="https://fonts.googleapis.com/css2?family=Tilt+Warp&display=swap"
           rel="stylesheet"
@@ -145,7 +145,9 @@ export default function Home() {
             />
 
             <div className="flex flex-col items-center gap-4 relative z-10">
-              {session?.user ? (
+              {status === "loading" ? (
+  <p className="text-lg text-gray-500">Checking login…</p>
+) : session?.user ? (
                 <>
                   <img
                     src={
@@ -251,7 +253,7 @@ export default function Home() {
         </div>
 
         <h1 className="aztec text-5xl xl:text-7xl text-green-700 mt-10 md:mt-14">
-          Mex Spanish Dict 💀
+          The MexiVerse 💀
         </h1>
       </header>
 

@@ -1,7 +1,8 @@
 import { useState, useEffect } from "react";
 import Head from "next/head";
 import { useRouter } from "next/router";
-import { useSession, useSupabaseClient } from "@supabase/auth-helpers-react";
+import { useSupabaseClient } from "@supabase/auth-helpers-react";
+import { useSession } from "next-auth/react";
 import confetti from "canvas-confetti";
 import toast from "react-hot-toast";
 import chunks from "../data/chunks";
@@ -23,6 +24,25 @@ export default function ChunkPage({ chunkData }) {
   const [isCorrect, setIsCorrect] = useState(null);
   const [loading, setLoading] = useState(true);
   const [dropIndex, setDropIndex] = useState(null);
+
+  // ★★★ MUST COME FIRST — now using next-auth session
+const { data: session, status } = useSession();
+const supabase = useSupabaseClient();
+const router = useRouter();
+
+
+  // ★★★ chunk view-tracking (now safe, session exists)
+  let viewed = [];
+  if (typeof window !== "undefined") {
+    viewed = JSON.parse(localStorage.getItem("chunkViews") || "[]");
+
+    if (!session?.user?.email) {
+      if (!viewed.includes(chunkData?.slug)) {
+        viewed.push(chunkData.slug);
+        localStorage.setItem("chunkViews", JSON.stringify(viewed));
+      }
+    }
+  }
 
     // 🌟🌟🌟 INSERT THIS POPUP FUNCTION HERE 🌟🌟🌟
   const showChallengePopup = (title, xp) => {
@@ -50,10 +70,6 @@ export default function ChunkPage({ chunkData }) {
   };
   // 🌟🌟🌟 END POPUP FUNCTION 🌟🌟🌟
 
-  const session = useSession();
-  const supabase = useSupabaseClient();
-  const router = useRouter();
-
   // Simulate loading state
   useEffect(() => {
     if (chunkData) {
@@ -61,37 +77,71 @@ export default function ChunkPage({ chunkData }) {
     }
   }, [chunkData]);
 
-  const checkFlashcardExists = async () => {
-    if (!session?.user?.id || !chunkData?.slug) return;
+  const getUserUUID = async () => {
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("id")
+    .eq("email", session.user.email)
+    .single();
 
-    setCheckingExistence(true);
-    try {
-      const { data, error } = await supabase
-        .from("flashcards")
-        .select("id")
-        .eq("user_id", session.user.id)
-        .eq("slug", chunkData.slug)
-        .eq("type", "chunk");
+  return profile?.id || null;
+};
 
-      if (!error && data && data.length > 0) {
-        setSaved(true);
-      } else {
-        setSaved(false);
-      }
-    } catch (err) {
-      console.error("Error checking flashcard:", err);
+const checkFlashcardExists = async () => {
+  if (!session?.user?.email || !chunkData?.slug) return;
+
+  setCheckingExistence(true);
+
+  try {
+    // 1️⃣ Get UUID from profiles (this is your REAL user_id)
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("id")
+      .eq("email", session.user.email)
+      .single();
+
+    if (!profile) {
       setSaved(false);
-    } finally {
       setCheckingExistence(false);
+      return;
     }
-  };
 
-  const handleLuckyClick = () => {
-    const allSlugs = chunks.map((chunk) => `/chunk/${chunk.slug}`);
-    const random = allSlugs[Math.floor(Math.random() * allSlugs.length)];
-    confetti({ particleCount: 100, spread: 70 });
-    router.push(random);
-  };
+    const userUUID = profile.id;
+
+    // 2️⃣ Check flashcard using UUID
+    const { data, error } = await supabase
+      .from("flashcards")
+      .select("id")
+      .eq("user_id", userUUID)
+      .eq("slug", chunkData.slug)
+      .eq("type", "chunk");
+
+    if (!error && data && data.length > 0) {
+      setSaved(true);
+    } else {
+      setSaved(false);
+    }
+
+  } catch (err) {
+    console.error("Error checking flashcard:", err);
+    setSaved(false);
+  } finally {
+    setCheckingExistence(false);
+  }
+};
+
+const handleLuckyClick = () => {
+  confetti({
+    particleCount: 120,
+    spread: 80,
+    origin: { y: 0.6 },
+  });
+
+  const allSlugs = chunks.map((chunk) => `/chunk/${chunk.slug}`);
+  const random = allSlugs[Math.floor(Math.random() * allSlugs.length)];
+  router.push(random);
+};
+
 
   const initializeSentenceGame = () => {
     // Use the first example sentence if available
@@ -210,7 +260,7 @@ if (isCorrectOrder && selectedWords.length === totalWords) {
   };
 
   const handleSaveFlashcard = async () => {
-    if (!session?.user?.id) {
+    if (!session?.user?.email) {
       toast.error("Please log in to save flashcards.");
       return;
     }
@@ -226,56 +276,89 @@ if (isCorrectOrder && selectedWords.length === totalWords) {
     
     setSaving(true);
 
+    // ⚡ INSTANT FEEDBACK (do NOT wait for DB)
+confetti({
+  particleCount: 40,
+  spread: 50,
+  origin: { y: 0.65 },
+});
+
     try {
       // First, delete any existing flashcards for this chunk
-      await supabase
-        .from("flashcards")
-        .delete()
-        .eq("user_id", session.user.id)
-        .eq("slug", chunkData.slug)
-        .eq("type", "chunk");
 
-      const examples = chunkData.examples || [];
-      const audioUrls = chunkData.audioUrls || [];
+try {
+  // Prepare examples + audio arrays
+  const examples = chunkData.examples || [];
+  const audioUrls = chunkData.audioUrls || [];
 
-      console.log(`Creating flashcard for chunk: ${chunkData.slug}`);
-
-      // Create new flashcard
-      const flashcard = {
-        user_id: session.user.id,
+  const response = await fetch("/api/saveFlashcard", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      flashcard: {
         slug: chunkData.slug,
         type: "chunk",
         front_text: chunkData.meaning,
         back_text: chunkData.title,
         example: examples[0]?.spanish || null,
         example_english: examples[0]?.english || null,
-        image_url: null,
         audio_url: audioUrls[0] || null,
         ease: 2.5,
         interval: 1,
         repetitions: 0,
-        next_review: new Date().toISOString(),
-      };
+        next_review: new Date().toISOString().slice(0, 10),
+      },
+    }),
+  });
 
-      // Log what we're about to insert
-      console.log("Attempting to insert flashcard:", JSON.stringify(flashcard, null, 2));
+  const result = await response.json();
 
-      // Insert the new flashcard
-      const { data, error } = await supabase
-        .from("flashcards")
-        .insert([flashcard])
-        .select();
+  if (!response.ok) {
+    console.error("Flashcard API error:", result);
+    toast.error("❌ Could not save flashcard.");
+    return;
+  }
 
-      if (error) {
-        console.error("Error saving flashcard:", error);
-        console.error("Error details:", {
-          message: error.message,
-          details: error.details,
-          hint: error.hint,
-          code: error.code
-        });
-        toast.error("❌ Could not save flashcard. Please try again.");
-      } else {
+  // ⚡ INSTANT FEEDBACK — no delay
+setSaved(true);
+toast.success("Flashcard saved! 🎉 +5 XP");
+
+// 🔥 UPDATE PROFILE XP (REAL SOURCE OF TRUTH)
+const gainedXP = 5;
+
+const { data: profile } = await supabase
+  .from("profiles")
+  .select("xp")
+  .eq("email", session.user.email)
+  .single();
+
+const currentXP = profile?.xp ?? 0;
+
+await supabase
+  .from("profiles")
+  .update({ xp: currentXP + gainedXP })
+  .eq("email", session.user.email);
+
+setShowXPAnimation(true);
+setTimeout(() => setShowXPAnimation(false), 2000);
+
+
+  // ⬇️ KEEP your XP + challenge code here (unchanged)
+  // ✔ your inner try/catch blocks stay exactly how they are.
+
+} catch (err) {
+  console.error("Unexpected save error:", err);
+  toast.error("❌ Something went wrong.");
+} finally {
+  setSaving(false);
+}
+
+const userUUID = await getUserUUID();
+if (!userUUID) {
+  console.error("❌ No user UUID found — cannot run XP/challenge logic");
+  return;
+}
+
 
 // 1️⃣ Check status BEFORE updating progress
 let wasCompleted = false;
@@ -289,7 +372,7 @@ try {
         challenge_type
       )
     `)
-    .eq("user_id", session.user.id)
+    .eq("user_id", userUUID)
     .eq("challenges.challenge_type", "save_chunks");
 
   if (beforeError) {
@@ -305,7 +388,7 @@ try {
 const { data: progressData, error: progressError } = await supabase.rpc(
   "update_challenge_progress",
   {
-    p_user_id: session.user.id,
+    p_user_id: userUUID,
     p_challenge_type: "save_chunks",
     p_progress_data: { chunks_saved: 1 }
   }
@@ -330,7 +413,7 @@ try {
         challenge_type
       )
     `)
-    .eq("user_id", session.user.id)
+    .eq("user_id", userUUID)
     .eq("challenges.challenge_type", "save_chunks");
 
   console.log(
@@ -365,7 +448,7 @@ try {
         
         try {
           await supabase.rpc('add_xp_activity', {
-            p_user_id: session.user.id,
+            p_user_id: userUUID,
             p_activity_type: 'chunk_saved',
             p_xp_earned: gainedXP,
             p_metadata: { 
@@ -379,24 +462,24 @@ try {
 
         // Route XP through daily progress bar system
         const today = new Date().toISOString().slice(0, 10);
-        let stored = JSON.parse(localStorage.getItem("reviewTracker")) || { 
-          date: today, 
-          count: 0, 
-          xp: 0, 
-          user_id: session.user.id 
-        };
+let stored = JSON.parse(localStorage.getItem("reviewTracker")) || {
+  date: today,
+  count: 0,
+  xp: 0,
+  user_email: session.user.email,
+};
 
-        // If a new user logs in, reset tracker
-        if (stored.user_id !== session.user.id) {
-          stored = { date: today, count: 0, xp: 0, user_id: session.user.id };
-        }
+if (stored.user_email !== session.user.email) {
+  stored = { date: today, count: 0, xp: 0, user_email: session.user.email };
+}
+
 
         // If new day, reset counts
         if (stored.date !== today) {
           stored.date = today;
           stored.count = 0;
           stored.xp = 0;
-          stored.user_id = session.user.id;
+          stored.user_id = userUUID;
         }
 
         const previousXP = stored.xp;
@@ -407,85 +490,70 @@ try {
         const previousMilestone = Math.floor(previousXP / 50);
         const currentMilestone = Math.floor(stored.xp / 50);
         
-        if (currentMilestone > previousMilestone) {
-          confetti({
-            particleCount: 200,
-            spread: 120,
-            origin: { y: 0.3 },
-            emojis: ["🌮", "🌮", "🌮"]
-          });
-          
-          // Show different messages for different milestones
-          const milestoneMessages = [
-            "¡Órale! 50 XP! 🎉",
-            "¡Qué chido! 100 XP! 🔥", 
-            "¡No manches! 150 XP! 🚀",
-            "¡Eres una máquina! 200 XP! 💪",
-            "¡Eres el mero mero! 250 XP! 👑"
-          ];
-          
-          const message = milestoneMessages[currentMilestone - 1] || `¡Increíble! ${currentMilestone * 50} XP! 🌟`;
-          
-          // Show toast notification
-          toast.success(message, {
-            duration: 4000,
-            style: {
-              fontSize: '1.2rem',
-              fontWeight: 'bold'
-            }
-          });
-          
-          // Update XP in Supabase profile (only at milestones)
-          const updateProfileXP = async () => {
-            const { data: profile } = await supabase
-              .from("profiles")
-              .select("xp")
-              .eq("id", session.user.id)
-              .single();
-              
-            const currentProfileXP = profile?.xp || 0;
-            const xpToAdd = 50; // Add 50 XP for each milestone
-            
-            await supabase
-              .from("profiles")
-              .update({ xp: currentProfileXP + xpToAdd })
-              .eq("id", session.user.id);
-          };
-          
-          updateProfileXP();
-        } else {
-          // Regular confetti for non-milestone saves
-          confetti({ 
-            particleCount: 100, 
-            spread: 70,
-            origin: { y: 0.6 }
-          });
-        }
+if (currentMilestone > previousMilestone) {
+  confetti({
+    particleCount: 200,
+    spread: 120,
+    origin: { y: 0.3 },
+    emojis: ["🌮", "🌮", "🌮"]
+  });
 
-        // Success!
-        setShowXPAnimation(true);
-        setTimeout(() => setShowXPAnimation(false), 2000);
-        
-        toast.success("✅ Flashcard saved! 🎉 +5 XP");
-        setSaved(true);
-        window.dispatchEvent(new CustomEvent("challengesUpdated"));
-      }
-    } catch (err) {
+  const milestoneMessages = [
+    "¡Órale! 50 XP! 🎉",
+    "¡Qué chido! 100 XP! 🔥", 
+    "¡No manches! 150 XP! 🚀",
+    "¡Eres una máquina! 200 XP! 💪",
+    "¡Eres el mero mero! 250 XP! 👑"
+  ];
+
+  const message =
+    milestoneMessages[currentMilestone - 1] ||
+    `¡Increíble! ${currentMilestone * 50} XP! 🌟`;
+
+  toast.success(message, {
+    duration: 4000,
+    style: {
+      fontSize: "1.2rem",
+      fontWeight: "bold",
+    },
+  });
+
+  const updateProfileXP = async () => {
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("xp")
+      .eq("email", session.user.email)
+      .single();
+
+    const currentProfileXP = profile?.xp || 0;
+
+    await supabase
+      .from("profiles")
+      .update({ xp: currentProfileXP + 50 })
+      .eq("email", session.user.email);
+  };
+
+  updateProfileXP();
+}
+
+
+    
+     } catch (err) {
       console.error("Unexpected error:", err);
       toast.error("❌ Something went wrong. Please try again.");
     } finally {
       setSaving(false);
     }
-  };
+};
 
   // Check if flashcard exists when component mounts or user/chunk changes
   useEffect(() => {
-    if (session?.user?.id && chunkData?.slug) {
+    if (session?.user?.email && chunkData?.slug) {
       checkFlashcardExists();
     } else {
       setSaved(false);
     }
-  }, [session?.user?.id, chunkData?.slug]);
+  }, [session?.user?.email, chunkData?.slug]);
 
   // Reset state when chunk changes
   useEffect(() => {
@@ -506,12 +574,6 @@ try {
     }
   }, [showMakeSentence, chunkData.examples]);
 
-    useEffect(() => {
-    if (showMakeSentence && chunkData.examples && chunkData.examples.length > 0) {
-      initializeSentenceGame();
-    }
-  }, [showMakeSentence, chunkData.examples]);
-
 
   // -------------------------
   // STEP 1 — SPLIT TAGS HERE
@@ -526,6 +588,13 @@ try {
     !generationLabels.includes(t.label)
   );
   // -------------------------
+
+/* 🔥 FREE ACCESS GATE — AUTO REDIRECT 🔒 */
+if (session === null && viewed.length > 3) {
+  router.push("/unlock?from=gate");
+  return null;
+}
+
 
   // Loading skeleton
   if (loading) {

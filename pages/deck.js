@@ -1,5 +1,6 @@
 import { useEffect, useState, useRef } from "react";
-import { useSession, useSupabaseClient } from "@supabase/auth-helpers-react";
+import { useSupabaseClient } from "@supabase/auth-helpers-react";
+import { useSession } from "next-auth/react";   // ✅ NEW
 import Head from "next/head";
 import confetti from "canvas-confetti";
 import toast from "react-hot-toast";
@@ -26,7 +27,7 @@ function formatEnglish(text) {
 
 
 export default function DeckPage() {
-  const session = useSession();
+  const { data: session } = useSession();
   const supabase = useSupabaseClient();
 
   const [dueCards, setDueCards] = useState([]);
@@ -44,7 +45,7 @@ export default function DeckPage() {
 
   // Fetch league info
   useEffect(() => {
-    if (!session?.user?.id) return;
+    if (!session?.user?.email) return;
 
     const fetchLeagueInfo = async () => {
       try {
@@ -52,7 +53,7 @@ export default function DeckPage() {
         const { data: profile } = await supabase
           .from("profiles")
           .select("current_league_id, weekly_xp")
-          .eq("id", session.user.id)
+          .eq("email", session.user.email)
           .single();
 
         if (profile?.current_league_id) {
@@ -70,7 +71,7 @@ export default function DeckPage() {
             .eq("league_id", profile.current_league_id)
             .order("weekly_xp", { ascending: false });
 
-          const position = participants?.findIndex(p => p.user_id === session.user.id) + 1;
+          const position = participants?.findIndex(p => p.user_id === session.user.email) + 1;
 
           setLeagueInfo({
             name: league?.league_name,
@@ -96,8 +97,8 @@ export default function DeckPage() {
     let stored = JSON.parse(localStorage.getItem("reviewTracker")) || {};
 
     // If a new user logs in, reset tracker
-    if (stored.user_id !== session.user.id) {
-      stored = { date: today, count: 0, xp: 0, user_id: session.user.id };
+    if (stored.user_id !== session.user.email) {
+      stored = { date: today, count: 0, xp: 0, user_id: session.user.email };
       localStorage.setItem("reviewTracker", JSON.stringify(stored));
     }
 
@@ -106,28 +107,46 @@ export default function DeckPage() {
       stored.date = today;
       stored.count = 0;
       stored.xp = 0;
-      stored.user_id = session.user.id;
+      stored.user_id = session.user.email;
       localStorage.setItem("reviewTracker", JSON.stringify(stored));
     }
 
     setReviewCount(stored.count || 0);
     setXp(stored.xp || 0);
 
-    const fetchDueCards = async () => {
-      const { data, error } = await supabase
-        .from("flashcards")
-        .select("*")
-        .eq("user_id", session.user.id)
-        .lte("next_review", new Date().toISOString())
-        .order("next_review", { ascending: true });
+const fetchDueCards = async () => {
+  // 1. Get the UUID for the logged-in user
+  const { data: profile, error: pErr } = await supabase
+    .from("profiles")
+    .select("id")
+    .eq("email", session.user.email)
+    .single();
 
-      if (error) {
-        console.error("Error loading flashcards:", error.message);
-      } else {
-        setDueCards(data);
-      }
-      setLoading(false);
-    };
+  if (pErr || !profile) {
+    console.error("Error loading user UUID:", pErr);
+    setLoading(false);
+    return;
+  }
+
+  const userUUID = profile.id;
+
+  // 2. Load flashcards using UUID
+  const { data, error } = await supabase
+    .from("flashcards")
+    .select("*")
+    .eq("user_id", userUUID)
+    .lte("next_review", new Date().toISOString())
+    .order("next_review", { ascending: true });
+
+  if (error) {
+    console.error("Error loading flashcards:", error.message);
+  } else {
+    setDueCards(data);
+  }
+
+  setLoading(false);
+};
+
 
     fetchDueCards();
   }, [session, supabase]);
@@ -146,13 +165,13 @@ export default function DeckPage() {
     if (processing) return;
 
     const today = new Date().toISOString().slice(0, 10);
-    let stored = JSON.parse(localStorage.getItem("reviewTracker")) || { date: today, count: 0, xp: 0, user_id: session.user.id };
+    let stored = JSON.parse(localStorage.getItem("reviewTracker")) || { date: today, count: 0, xp: 0, user_id: session.user.email };
 
     if (stored.date !== today) {
       stored.date = today;
       stored.count = 0;
       stored.xp = 0;
-      stored.user_id = session.user.id;
+      stored.user_id = session.user.email;
     }
 
     if (stored.count >= 100) {
@@ -213,7 +232,7 @@ export default function DeckPage() {
     const gainedXP = quality === 3 ? 5 : quality === 2 ? 3 : 1;
     stored.count += 1;
     stored.xp += gainedXP;
-    stored.user_id = session.user.id;
+    stored.user_id = session.user.email;
     localStorage.setItem("reviewTracker", JSON.stringify(stored));
 
     setReviewCount(stored.count);
@@ -222,7 +241,7 @@ export default function DeckPage() {
     // NEW: Update weekly XP for leagues
     try {
       await supabase.rpc('add_xp_activity', {
-        p_user_id: session.user.id,
+        p_user_id: session.user.email,
         p_activity_type: 'flashcard_review',
         p_xp_earned: gainedXP,
         p_metadata: { 
@@ -277,7 +296,7 @@ export default function DeckPage() {
         const { data: profile } = await supabase
           .from("profiles")
           .select("xp, streak_count, last_activity_date")
-          .eq("id", session.user.id)
+          .eq("email", session.user.email)
           .single();
           
         const currentProfileXP = profile?.xp || 0;
@@ -316,7 +335,7 @@ export default function DeckPage() {
             streak_count: newStreakCount,
             last_activity_date: today
           })
-          .eq("id", session.user.id);
+          .eq("id", session.user.email);
         
         // Show streak celebration if applicable
         if (newStreakCount >= 7 && streakMultiplier > 1) {
@@ -537,6 +556,11 @@ if (/^I\b/.test(combined.trim())) {
   return combined.trim();
 }
 
+// 🔥 NEW RULE — if meaning starts with a question/exclamation word, capitalize
+if (/^(what|why|how|who|where|when|which|what’s|what is|why is|how do)/i.test(combined.trim())) {
+  return combined.trim().charAt(0).toUpperCase() + combined.trim().slice(1);
+}
+
 return formatEnglish(combined);
 
 
@@ -550,6 +574,46 @@ return formatEnglish(combined);
 
   const example = card.example;
   let chunk = (card.back_text || "").toLowerCase().trim();
+
+// ======================================================
+// ✅ UNIVERSAL CLOZE FOR QUESTION CHUNKS USING back_text
+// If back_text is a question (starts with ¿ and ends with ?),
+// blank that exact question wherever it appears in the example.
+// Keeps any lead-in like "Tú" by only blanking from the question word onwards.
+// ======================================================
+if (card.type !== "word" && example && (card.back_text || "").trim().startsWith("¿")) {
+  const q = (card.back_text || "").trim();
+
+  // Escape regex special chars
+  const esc = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+
+  // Remove outer ¿ ? for matching inside the example question
+  const inner = q.replace(/^¿\s*/, "").replace(/\?\s*$/, "");
+
+  // Special handling: if it starts with "Tú qué ..." (or any lead-in word + qué/cómo/etc),
+  // keep the lead-in word(s) and blank the rest.
+  // Example: "Tú qué te crees" => keep "Tú " then blank "qué te crees"
+  const leadInMatch = inner.match(/^(\p{L}+\s+)(qué|cómo|cuál|quién|dónde|cuándo|por\s+qué|para\s+qué|con\s+qué|a\s+qué|de\s+qué)\b/iu);
+
+  if (leadInMatch) {
+    const leadIn = leadInMatch[1]; // "Tú "
+    const rest = inner.slice(leadIn.length); // "qué te crees"
+    const re = new RegExp(`¿\\s*${esc(leadIn)}${esc(rest)}\\s*\\?`, "giu");
+
+    if (re.test(example)) {
+      return example.replace(re, `¿${leadIn}_____?`);
+    }
+  } else {
+    // Default: blank whole question chunk
+    const re = new RegExp(`¿\\s*${esc(inner)}\\s*\\?`, "giu");
+    if (re.test(example)) {
+      return example.replace(re, "¿_____?");
+    }
+  }
+}
+
+
+
 
   // ======================================================
 // 🔥 CLOZE FOR SINGLE WORD FLASHCARDS (güey, neta, chela…)
@@ -646,6 +710,22 @@ if (card.slug === "mejor") {
 // Front should show: ¿_____? Me dieron el trabajo.
 if (card.slug === "y-que-crees") {
   return example.replace(/¿?Y qué crees\??/gi, "¿_____?");
+}
+
+// ⭐ SPECIAL CASE — ¿Qué crees?
+if (card.slug === "que-crees") {
+  return example.replace(/¿?Qué crees\??/gi, "¿_____?");
+}
+
+// ⭐ SPECIAL CASE — ¿Qué se te ofrece?
+if (card.slug === "que-se-te-ofrece") {
+  return example.replace(/¿?Qué se te ofrece\??/gi, "¿_____?");
+}
+
+// ⭐ SPECIAL CASE — ¿Cómo le hago para…?
+// Front should show: "¿_____ sacar mi pasaporte?" etc.
+if (card.slug === "como-le-hago-para") {
+  return example.replace(/¿?Cómo\s+(?:chingados\s+)?le\s+hag[oa]\s+para\s*/gi, "¿_____ ");
 }
 
 // ⭐ FULL CLOZE — wipes entire verb, no ó left behind

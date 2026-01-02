@@ -1,18 +1,36 @@
 import { useEffect, useState, useRef, useCallback } from "react";
-import { useSession, useSupabaseClient } from "@supabase/auth-helpers-react";
+import { useSession } from "next-auth/react";
+import { useSupabaseClient } from "@supabase/auth-helpers-react";
 import confetti from "canvas-confetti";
 import toast from "react-hot-toast";
 
 export default function ChallengesSection() {
-  const session = useSession();
+  const { data: session } = useSession();
   const supabase = useSupabaseClient();
 
   const [challenges, setChallenges] = useState([]);
   const [loading, setLoading] = useState(true);
   const [activeFilter, setActiveFilter] = useState("all");
 
+  const [userUUID, setUserUUID] = useState(null);
   const prevCompleted = useRef(new Set());
   const hasFetchedOnce = useRef(false);
+
+  useEffect(() => {
+  const fetchUUID = async () => {
+    if (!session?.user?.email) return;
+
+    const { data } = await supabase
+      .from("profiles")
+      .select("id")
+      .eq("email", session.user.email)
+      .single();
+
+    setUserUUID(data?.id || null);
+  };
+
+  fetchUUID();
+}, [session?.user?.email, supabase]);
 
   // Celebrate newly completed challenges
   const celebrateChallengeCompletion = (challenge) => {
@@ -33,6 +51,7 @@ export default function ChallengesSection() {
 
   // ⬇⬇⬇ FIXED — now stable & lint compliant
   const fetchChallenges = useCallback(async () => {
+    if (!userUUID) return;
     try {
       const { data: allChallenges, error: challengesError } = await supabase
         .from("challenges")
@@ -46,7 +65,7 @@ export default function ChallengesSection() {
       const { data: userProgress, error: progressError } = await supabase
         .from("user_challenges")
         .select("*")
-        .eq("user_id", session.user.id);
+        .eq("user_id", userUUID);
 
       if (progressError) throw progressError;
 
@@ -109,13 +128,12 @@ export default function ChallengesSection() {
 
       await updateWeeklyProgressChallenges();
 
-      let newlyCompleted = [];
-      if (hasFetchedOnce.current) {
-        newlyCompleted = challengesWithProgress.filter(
-          (ch) => ch.is_completed && !prevCompleted.current.has(ch.id)
-        );
-        newlyCompleted.forEach((ch) => celebrateChallengeCompletion(ch));
-      }
+const newlyCompleted = challengesWithProgress.filter(
+  (ch) => ch.is_completed && !prevCompleted.current.has(ch.id)
+);
+
+newlyCompleted.forEach((ch) => celebrateChallengeCompletion(ch));
+
 
       prevCompleted.current = new Set(
         challengesWithProgress.filter((c) => c.is_completed).map((c) => c.id)
@@ -135,28 +153,26 @@ export default function ChallengesSection() {
     } finally {
       setLoading(false);
     }
-  }, [session?.user?.id, supabase]); // ⬅ required dependencies
+  }, [userUUID, supabase]); // ⬅ required dependencies
 
   // ⬇ FIXED useEffect now references callback safely
-  useEffect(() => {
-    if (!session?.user?.id) {
-      setLoading(false);
-      return;
-    }
-    fetchChallenges();
-  }, [fetchChallenges, session?.user?.id]);
+useEffect(() => {
+  if (!userUUID) return;
+  fetchChallenges();
+}, [fetchChallenges, userUUID]);
+
 
   const updateWeeklyProgressChallenges = async () => {
     try {
       const { data: profile } = await supabase
         .from("profiles")
         .select("weekly_xp, streak_count")
-        .eq("id", session.user.id)
+        .eq("email", session.user.email)
         .single();
 
       if (profile?.weekly_xp > 0) {
         await supabase.rpc("update_challenge_progress", {
-          p_user_id: session.user.id,
+          p_user_id: userUUID,
           p_challenge_type: "weekly_xp",
           p_progress_data: { weekly_xp: profile.weekly_xp }
         });
@@ -164,7 +180,7 @@ export default function ChallengesSection() {
 
       if (profile?.streak_count > 0) {
         await supabase.rpc("update_challenge_progress", {
-          p_user_id: session.user.id,
+          p_user_id: userUUID,
           p_challenge_type: "streak",
           p_progress_data: { streak_count: profile.streak_count }
         });

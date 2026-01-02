@@ -27,7 +27,7 @@ export default function ProfileSetupPage() {
       const { data } = await supabase
         .from("profiles")
         .select("id")
-        .eq("id", session.user.id)
+        .eq("email", session.user.email)
         .single();
 
       if (data) {

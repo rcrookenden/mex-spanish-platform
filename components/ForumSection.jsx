@@ -1,11 +1,19 @@
 import { useState, useEffect } from "react";
-import { useSession, useSupabaseClient } from "@supabase/auth-helpers-react";
+import { useSession } from "next-auth/react";
+import { createClient } from "@supabase/supabase-js";
 import { FiTrash2, FiX } from "react-icons/fi";
 import ClipLoader from "react-spinners/ClipLoader";
 
 export default function ForumSection({ wordSlug = null, isMainForum = false }) {
-  const supabase = useSupabaseClient();
-  const session = useSession();
+  const supabase = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL,
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+);
+  const { data: session, status } = useSession();
+  const userUUID = session?.user?.profileId ?? null;
+  
+  console.log("SESSION USER:", session?.user);
+  console.log("PROFILE UUID:", userUUID);
 
   const [posts, setPosts] = useState([]);
   const [newPost, setNewPost] = useState("");
@@ -29,6 +37,10 @@ export default function ForumSection({ wordSlug = null, isMainForum = false }) {
   const [modalReplyUrl, setModalReplyUrl] = useState("");
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
 
+  
+
+
+
   const categories = [
     { id: "all", label: "All", emoji: "🌐" },
     { id: "general", label: "General", emoji: "💬" },
@@ -49,12 +61,12 @@ export default function ForumSection({ wordSlug = null, isMainForum = false }) {
       }));
 
   const fetchUserVotes = async () => {
-    if (!session?.user?.id) return;
+  if (!userUUID) return;
     
     const { data, error } = await supabase
       .from('forum_votes')
       .select('post_id, vote')
-      .eq('user_id', session.user.id);
+      .eq('user_id', userUUID);
     
     if (!error && data) {
       const votesMap = {};
@@ -174,47 +186,65 @@ export default function ForumSection({ wordSlug = null, isMainForum = false }) {
     fetchPosts();
   };
 
-  useEffect(() => {
-    fetchPosts();
-    fetchUserVotes();
-  }, [wordSlug, activeCategory, session?.user?.id]);
+useEffect(() => {
+  fetchPosts(); // public, OK without user
 
-  const handlePost = async () => {
-    if (!newPost.trim()) return;
-    if (!session?.user?.id) return alert("Please log in to post.");
+  if (!userUUID) return; // ⛔ STOP HERE if not ready
 
-    setPosting(true);
-    const postData = {
-      user_id: session.user.id,
-      content: newPost.trim(),
-      word_slug: wordSlug?.toLowerCase() || null,
-    };
+  fetchUserVotes();
+}, [wordSlug, activeCategory, userUUID]);
 
-    if (isMainForum && !replyingTo) {
-      if (!newPostTitle.trim()) {
-        alert("Please add a title for your post");
-        setPosting(false);
-        return;
-      }
-      postData.title = newPostTitle.trim();
-      postData.category = selectedCategory;
+
+ const handlePost = async () => {
+  if (!newPost.trim()) return;
+
+  if (!session?.user || !userUUID) {
+    alert("Please log in to post.");
+    return;
+  }
+
+  setPosting(true);
+
+  const postData = {
+    user_id: userUUID,
+    content: newPost.trim(),
+    word_slug: wordSlug?.toLowerCase() || null,
+    parent_id: replyingTo || null,
+  };
+
+  if (isMainForum && !replyingTo) {
+    if (!newPostTitle.trim()) {
+      alert("Please add a title for your post");
+      setPosting(false);
+      return;
     }
 
-    const { error } = await supabase.from("forum_posts").insert(postData);
+    postData.title = newPostTitle.trim();
+    postData.category = selectedCategory;
+  }
 
-    if (!error) {
-      setNewPost("");
-      setNewPostTitle("");
-      fetchPosts();
-    }
-    setPosting(false);
+  const { error } = await supabase
+    .from("forum_posts")
+    .insert(postData);
+
+if (error) {
+  console.error("❌ POST ERROR:", error);
+  alert(error.message);
+  setPosting(false);
+  return;
+}
+
+setNewPost("");
+setNewPostTitle("");
+await fetchPosts();
+setPosting(false);
   };
 
   const handleReply = async (parentId) => {
-    if (!replyContent.trim() || !session?.user?.id) return;
+    if (!replyContent.trim() || !userUUID) return;
 
     const { error } = await supabase.from("forum_posts").insert({
-      user_id: session.user.id,
+      user_id: userUUID,
       content: replyContent.trim(),
       word_slug: wordSlug?.toLowerCase() || null,
       parent_id: parentId,
@@ -229,7 +259,7 @@ export default function ForumSection({ wordSlug = null, isMainForum = false }) {
   };
 
   const handleModalReply = async () => {
-    if (!modalReplyContent.trim() || !session?.user?.id) return;
+    if (!modalReplyContent.trim() || !userUUID) return;
 
     // Build the content with URLs and file references
     let fullContent = modalReplyContent.trim();
@@ -243,7 +273,7 @@ export default function ForumSection({ wordSlug = null, isMainForum = false }) {
     }
 
     const { error } = await supabase.from("forum_posts").insert({
-      user_id: session.user.id,
+      user_id: userUUID,
       content: fullContent,
       word_slug: null,
       parent_id: selectedThread.id,
@@ -260,10 +290,10 @@ export default function ForumSection({ wordSlug = null, isMainForum = false }) {
   };
 
   const handleModalNestedReply = async (parentId) => {
-    if (!modalNestedReplyContent.trim() || !session?.user?.id) return;
+    if (!modalNestedReplyContent.trim() || !userUUID) return;
 
     const { error } = await supabase.from("forum_posts").insert({
-      user_id: session.user.id,
+      user_id: userUUID,
       content: modalNestedReplyContent.trim(),
       word_slug: null,
       parent_id: parentId,
@@ -310,7 +340,7 @@ export default function ForumSection({ wordSlug = null, isMainForum = false }) {
   };
 
   const handleVote = async (postId, type) => {
-    if (!session?.user?.id) {
+    if (!userUUID) {
       alert("Please log in to vote.");
       return;
     }
@@ -396,7 +426,7 @@ export default function ForumSection({ wordSlug = null, isMainForum = false }) {
       
       const { data, error } = await supabase.rpc("safe_single_vote", {
         p_post_id: postId,
-        p_user_id: session.user.id,
+        p_user_id: userUUID,
         p_vote: voteValue,
       });
 
@@ -581,7 +611,7 @@ export default function ForumSection({ wordSlug = null, isMainForum = false }) {
                 >
                   Reply
                 </button>
-                {post.user_id === session?.user?.id && (
+                {post.user_id === userUUID && (
                   <>
                     <button
                       onClick={() => {
@@ -789,7 +819,7 @@ export default function ForumSection({ wordSlug = null, isMainForum = false }) {
                 <p className="text-gray-800 whitespace-pre-wrap text-lg">{post.content}</p>
               )}
             </div>
-            {post.user_id === session?.user?.id && (
+            {post.user_id === userUUID && (
               <div className="flex gap-2 mt-1">
                 <button
                   onClick={() => {
@@ -955,7 +985,7 @@ export default function ForumSection({ wordSlug = null, isMainForum = false }) {
                   >
                     Reply
                   </button>
-                  {selectedThread.user_id === session?.user?.id && (
+                  {selectedThread.user_id === userUUID && (
                     <>
                       <button
                         onClick={() => {
@@ -1147,7 +1177,9 @@ export default function ForumSection({ wordSlug = null, isMainForum = false }) {
         </div>
       )}
 
-      {session?.user ? (
+      {status === "loading" ? (
+  <p className="text-lg text-gray-500">Checking login…</p>
+) : session?.user ? (
         <div className="mb-6">
           {isMainForum && (
             <>

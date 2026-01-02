@@ -1,6 +1,10 @@
+/* ————— MUST BE FIRST ————— */
+@import url('https://fonts.googleapis.com/css2?family=Comic+Neue:wght@400;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=IM+Fell+English+SC&display=swap');
 @import "tailwindcss";
 
-@import url('https://fonts.googleapis.com/css2?family=Comic+Neue:wght@400;700&display=swap');
+/* ————— Your Styles ————— */
 
 :root {
   --background: #ffffff;
@@ -27,9 +31,7 @@ body {
   font-family: 'Comic Neue', cursive, sans-serif;
 }
 
-.card-container {
-  perspective: 1000px;
-}
+.card-container { perspective: 1000px; }
 
 .card-inner {
   transition: transform 0.8s;
@@ -39,9 +41,7 @@ body {
   height: 100%;
 }
 
-.card-inner.flipped {
-  transform: rotateY(180deg);
-}
+.card-inner.flipped { transform: rotateY(180deg); }
 
 .card-face {
   position: absolute;
@@ -51,15 +51,13 @@ body {
   display: flex;
   justify-content: center;
   align-items: center;
-  text-align: center; /* ✅ horizontal centering */
+  text-align: center;
   padding: 2rem;
   word-wrap: break-word;
   white-space: pre-wrap;
 }
 
-.card-back {
-  transform: rotateY(180deg);
-}
+.card-back { transform: rotateY(180deg); }
 
 @keyframes shake {
   0%, 100% { transform: translateX(0); }
@@ -67,10 +65,6 @@ body {
   40%, 80% { transform: translateX(5px); }
 }
 
-.animate-shake {
-  animation: shake 0.5s ease-in-out infinite;
-}
+.animate-shake { animation: shake 0.5s ease-in-out infinite; }
 
-.no-transition {
-  transition: none !important;
-}
+.no-transition { transition: none !important; }

@@ -1,7 +1,8 @@
 import { useState, useEffect } from "react";
 import Head from "next/head";
 import { useRouter } from "next/router";
-import { useSession, useSupabaseClient } from "@supabase/auth-helpers-react";
+import { useSupabaseClient } from "@supabase/auth-helpers-react";
+import { useSession } from "next-auth/react";
 import confetti from "canvas-confetti";
 import toast from "react-hot-toast";
 import ForumSection from "../components/ForumSection";
@@ -23,48 +24,75 @@ export default function WordPage({ wordData }) {
   const [checkingExistence, setCheckingExistence] = useState(false);
   const [showXPAnimation, setShowXPAnimation] = useState(false);
 
-  const session = useSession();
+  const { data: session } = useSession();
   const supabase = useSupabaseClient();
   const router = useRouter();
 
-const parseMeanings = (meaningText) => {
-  if (!meaningText) return [];
+  const parseMeanings = (meaningText) => {
+    if (!meaningText) return [];
 
-  // NEW → extract EVERYTHING after 👉 including HTML, THEN clean it
-  const arrow = meaningText.match(/👉\s*(.*?)(<br|$)/i);
+    // NEW → extract EVERYTHING after 👉 including HTML, THEN clean it
+    const arrow = meaningText.match(/👉\s*(.*?)(<br|$)/i);
 
-  if (arrow) {
-    let extracted = arrow[1]
-      .replace(/<[^>]+>/g, "") // remove <strong>, <br>, etc
-      .trim();
+    if (arrow) {
+      let extracted = arrow[1]
+        .replace(/<[^>]+>/g, "") // remove <strong>, <br>, etc
+        .trim();
 
-    return [extracted]; // ALWAYS one flashcard
-  }
+      return [extracted]; // ALWAYS one flashcard
+    }
 
-  // fallback if no 👉 emoji exists
-  let meanings = meaningText
-    .replace(/<[^>]+>/g, "") // clean HTML
-    .split("\n")
-    .filter((m) => m.trim())
-    .map((m) => m.trim());
+    // fallback if no 👉 emoji exists
+    let meanings = meaningText
+      .replace(/<[^>]+>/g, "") // clean HTML
+      .split("\n")
+      .filter((m) => m.trim())
+      .map((m) => m.trim());
 
-  return meanings.length ? meanings : [meaningText.trim()];
-};
+    return meanings.length ? meanings : [meaningText.trim()];
+  };
 
+  // 🔑 Get user UUID from profiles (email → id), same idea as ChunkPage
+  const getUserUUID = async () => {
+    if (!session?.user?.email) return null;
+
+    const { data: profile, error } = await supabase
+      .from("profiles")
+      .select("id")
+      .eq("email", session.user.email)
+      .single();
+
+    if (error || !profile) {
+      console.error("❌ Could not fetch user UUID for profile:", error);
+      return null;
+    }
+
+    return profile.id;
+  };
 
   const checkFlashcardExists = async () => {
-    if (!session?.user?.id || !wordData?.slug) return;
+    if (!session?.user?.email || !wordData?.slug) return;
 
     setCheckingExistence(true);
     try {
-      const { data } = await supabase
+      const userUUID = await getUserUUID();
+      if (!userUUID) {
+        setSaved(false);
+        return;
+      }
+
+      const { data, error } = await supabase
         .from("flashcards")
         .select("id")
-        .eq("user_id", session.user.id)
+        .eq("user_id", userUUID)
         .eq("slug", wordData.slug)
         .eq("type", "word");
 
-      setSaved(data && data.length > 0);
+      if (!error && data && data.length > 0) {
+        setSaved(true);
+      } else {
+        setSaved(false);
+      }
     } catch (err) {
       console.error("Error checking flashcard:", err);
       setSaved(false);
@@ -92,10 +120,13 @@ const parseMeanings = (meaningText) => {
 
     confetti({ particleCount: 100, spread: 70 });
 
-    if (session?.user?.id) {
+    if (session?.user?.email) {
       try {
+        const userUUID = await getUserUUID();
+        if (!userUUID) return;
+
         await supabase.rpc("add_xp_activity", {
-          p_user_id: session.user.id,
+          p_user_id: userUUID,
           p_activity_type: "quiz_correct",
           p_xp_earned: 2,
           p_metadata: {
@@ -109,10 +140,19 @@ const parseMeanings = (meaningText) => {
           date: today,
           count: 0,
           xp: 0,
-          user_id: session.user.id,
+          user_id: userUUID,
         };
 
-        if (stored.date === today && stored.user_id === session.user.id) {
+        if (stored.user_id !== userUUID) {
+          stored = {
+            date: today,
+            count: 0,
+            xp: 0,
+            user_id: userUUID,
+          };
+        }
+
+        if (stored.date === today && stored.user_id === userUUID) {
           stored.xp += 2;
           localStorage.setItem("reviewTracker", JSON.stringify(stored));
         }
@@ -125,7 +165,7 @@ const parseMeanings = (meaningText) => {
   };
 
   const handleSaveFlashcard = async () => {
-    if (!session?.user?.id) {
+    if (!session?.user?.email) {
       toast.error("Please log in to save flashcards.");
       return;
     }
@@ -141,10 +181,17 @@ const parseMeanings = (meaningText) => {
     setSaving(true);
 
     try {
+      const userUUID = await getUserUUID();
+      if (!userUUID) {
+        toast.error("Could not find user profile.");
+        return;
+      }
+
+      // Delete any existing word flashcards for this user+slug
       await supabase
         .from("flashcards")
         .delete()
-        .eq("user_id", session.user.id)
+        .eq("user_id", userUUID)
         .eq("slug", wordData.slug)
         .eq("type", "word");
 
@@ -153,7 +200,7 @@ const parseMeanings = (meaningText) => {
       const audioUrls = wordData.audioUrls || [];
 
       const flashcards = meanings.map((meaning, index) => ({
-        user_id: session.user.id,
+        user_id: userUUID,
         slug: wordData.slug,
         type: "word",
         front_text: meaning,
@@ -165,7 +212,7 @@ const parseMeanings = (meaningText) => {
         ease: 2.5,
         interval: 1,
         repetitions: 0,
-        next_review: new Date().toISOString(),
+        next_review: new Date().toISOString().slice(0, 10),
       }));
 
       const { error } = await supabase
@@ -181,7 +228,7 @@ const parseMeanings = (meaningText) => {
 
         try {
           await supabase.rpc("add_xp_activity", {
-            p_user_id: session.user.id,
+            p_user_id: userUUID,
             p_activity_type: "word_saved",
             p_xp_earned: gainedXP,
             p_metadata: {
@@ -198,15 +245,15 @@ const parseMeanings = (meaningText) => {
           date: today,
           count: 0,
           xp: 0,
-          user_id: session.user.id,
+          user_id: userUUID,
         };
 
-        if (stored.user_id !== session.user.id) {
+        if (stored.user_id !== userUUID) {
           stored = {
             date: today,
             count: 0,
             xp: 0,
-            user_id: session.user.id,
+            user_id: userUUID,
           };
         }
 
@@ -214,7 +261,7 @@ const parseMeanings = (meaningText) => {
           stored.date = today;
           stored.count = 0;
           stored.xp = 0;
-          stored.user_id = session.user.id;
+          stored.user_id = userUUID;
         }
 
         const previousXP = stored.xp;
@@ -258,12 +305,12 @@ const parseMeanings = (meaningText) => {
 
   // Reset on change
   useEffect(() => {
-    if (session?.user?.id && wordData?.slug) {
+    if (session?.user?.email && wordData?.slug) {
       checkFlashcardExists();
     } else {
       setSaved(false);
     }
-  }, [session?.user?.id, wordData?.slug]);
+  }, [session?.user?.email, wordData?.slug]);
 
   useEffect(() => {
     setSaved(false);
@@ -299,7 +346,6 @@ const parseMeanings = (meaningText) => {
 
       {/* Outer card */}
       <div className="max-w-6xl mx-auto bg-white rounded-2xl shadow-2xl p-6 sm:p-10">
-        
         {/* HEADER: Title + Tags + Red Line */}
         <div className="mb-8">
           <div className="flex flex-wrap justify-center sm:justify-start items-end gap-2 w-full">
@@ -311,7 +357,7 @@ const parseMeanings = (meaningText) => {
             </span>
 
             <button
-  className="cursor-pointer text-4xl ml-3 hover:scale-125 transition"
+              className="cursor-pointer text-4xl ml-3 hover:scale-125 transition"
               onClick={() =>
                 wordData.audioUrls?.[0] &&
                 new Audio(wordData.audioUrls[0]).play()
@@ -323,79 +369,79 @@ const parseMeanings = (meaningText) => {
 
           <div className="border-b-4 border-red-600 mt-2 mb-5 w-full" />
 
-<div className="flex gap-3 flex-wrap pl-1">
-  {wordData.tags?.map((tag, i) => (
-    <span
-      key={i}
-      className={`${tagColors[tag] || "bg-gray-300 text-black"} px-3 py-1 rounded-full text-md font-semibold`}
-    >
-      {tag}
-    </span>
-  ))}
-</div>
+          <div className="flex gap-3 flex-wrap pl-1">
+            {wordData.tags?.map((tag, i) => (
+              <span
+                key={i}
+                className={`${
+                  tagColors[tag] || "bg-gray-300 text-black"
+                } px-3 py-1 rounded-full text-md font-semibold`}
+              >
+                {tag}
+              </span>
+            ))}
+          </div>
         </div>
 
         {/* GRID: Left + Right */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
-          
           {/* LEFT COLUMN */}
           <div className="flex flex-col gap-6">
-            
-{/* Meanings / Uses */}
-<section className="bg-gray-100 p-6 rounded-xl">
-  <h2 className="text-3xl font-bold text-green-700 mb-3">
-    Meanings / Uses:
-  </h2>
+            {/* Meanings / Uses */}
+            <section className="bg-gray-100 p-6 rounded-xl">
+              <h2 className="text-3xl font-bold text-green-700 mb-3">
+                Meanings / Uses:
+              </h2>
 
-  <div
-    className="text-lg leading-relaxed"
-    dangerouslySetInnerHTML={{
-      __html: (wordData.meaning || "").replace(/\n/g, "<br>")
-    }}
-  />
-</section>
-
+              <div
+                className="text-lg leading-relaxed"
+                dangerouslySetInnerHTML={{
+                  __html: (wordData.meaning || "").replace(/\n/g, "<br>"),
+                }}
+              />
+            </section>
 
             {/* Examples */}
-<section className="bg-gray-100 p-6 rounded-xl">
-  <h2 className="text-3xl font-bold text-green-700 mb-4">Examples:</h2>
+            <section className="bg-gray-100 p-6 rounded-xl">
+              <h2 className="text-3xl font-bold text-green-700 mb-4">
+                Examples:
+              </h2>
 
-  <ul className="space-y-4 text-lg font-semibold list-none pl-0">
-    {wordData.examples.map((ex, i) => (
-      <li key={i} className="pl-0">
-        <div className="whitespace-pre-wrap">
-          <span>{ex.spanish}</span>
-          <span className="block text-gray-600 italic font-normal whitespace-pre-wrap">
-            {ex.english}
-          </span>
-        </div>
-      </li>
-    ))}
-  </ul>
-</section>
-
-
+              <ul className="space-y-4 text-lg font-semibold list-none pl-0">
+                {wordData.examples.map((ex, i) => (
+                  <li key={i} className="pl-0">
+                    <div className="whitespace-pre-wrap">
+                      <span>{ex.spanish}</span>
+                      <span className="block text-gray-600 italic font-normal whitespace-pre-wrap">
+                        {ex.english}
+                      </span>
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            </section>
 
             {/* Similar Words */}
-<section className="bg-gray-100 p-6 rounded-xl">
-  <h2 className="text-3xl font-bold text-green-700 mb-3">🔁 Similar words:</h2>
+            <section className="bg-gray-100 p-6 rounded-xl">
+              <h2 className="text-3xl font-bold text-green-700 mb-3">
+                🔁 Similar words:
+              </h2>
 
-  {wordData.similarWords && wordData.similarWords.length > 0 ? (
-    <div className="flex flex-wrap gap-2">
-      {wordData.similarWords.map((w, i) => (
-        <span
-          key={i}
-          className="bg-white px-4 py-2 rounded-full text-sm border border-gray-300 hover:border-green-500 cursor-pointer transition-colors"
-        >
-          {w}
-        </span>
-      ))}
-    </div>
-  ) : (
-    <p className="text-lg">Similar words coming soon!</p>
-  )}
-</section>
-
+              {wordData.similarWords && wordData.similarWords.length > 0 ? (
+                <div className="flex flex-wrap gap-2">
+                  {wordData.similarWords.map((w, i) => (
+                    <span
+                      key={i}
+                      className="bg-white px-4 py-2 rounded-full text-sm border border-gray-300 hover:border-green-500 cursor-pointer transition-colors"
+                    >
+                      {w}
+                    </span>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-lg">Similar words coming soon!</p>
+              )}
+            </section>
 
             {/* SAVE + LUCKY */}
             <div className="flex flex-col gap-4 mt-4 text-center lg:text-left">
@@ -411,10 +457,10 @@ const parseMeanings = (meaningText) => {
                 {checkingExistence
                   ? "Checking..."
                   : saved
-                    ? "✅ Saved to Deck"
-                    : saving
-                      ? "Saving..."
-                      : "⭐ Save to Flashcards"}
+                  ? "✅ Saved to Deck"
+                  : saving
+                  ? "Saving..."
+                  : "⭐ Save to Flashcards"}
               </button>
 
               <button
@@ -430,10 +476,11 @@ const parseMeanings = (meaningText) => {
 
           {/* RIGHT COLUMN */}
           <div className="flex flex-col gap-6">
-            
             {/* TONE SECTION (NEW) */}
             <section className="bg-gray-100 p-6 rounded-xl">
-              <h2 className="text-3xl font-bold text-green-700 mb-3">⚠️ Tone</h2>
+              <h2 className="text-3xl font-bold text-green-700 mb-3">
+                ⚠️ Tone
+              </h2>
               <p
                 className="text-lg whitespace-pre-line"
                 dangerouslySetInnerHTML={{
@@ -443,26 +490,30 @@ const parseMeanings = (meaningText) => {
             </section>
 
             {/* USEFUL CHUNKS (BELOW TONE) */}
-<section className="bg-gray-100 p-6 rounded-xl">
-  <h2 className="text-3xl font-bold text-green-700 mb-4">Useful Chunks:</h2>
+            <section className="bg-gray-100 p-6 rounded-xl">
+              <h2 className="text-3xl font-bold text-green-700 mb-4">
+                Useful Chunks:
+              </h2>
 
-  <ul className="space-y-2 text-lg list-none p-0">
-    {wordData.usefulChunks.map((c, i) => (
-      <li key={i}>
-        <span className="font-semibold">{c.chunk}</span>
-        <span className="text-gray-600 italic"> — {c.translation}</span>
-      </li>
-    ))}
-  </ul>
-</section>
+              <ul className="space-y-2 text-lg list-none p-0">
+                {wordData.usefulChunks.map((c, i) => (
+                  <li key={i}>
+                    <span className="font-semibold">{c.chunk}</span>
+                    <span className="text-gray-600 italic">
+                      {" "}
+                      — {c.translation}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            </section>
 
             {/* PRONUNCIATION */}
             <div>
-<button
-  onClick={() => setShowPronunciation(!showPronunciation)}
-  className="cursor-pointer w-full bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-4 rounded-full font-bold text-xl"
->
-
+              <button
+                onClick={() => setShowPronunciation(!showPronunciation)}
+                className="cursor-pointer w-full bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-4 rounded-full font-bold text-xl"
+              >
                 Pronunciation {showPronunciation ? "−" : "+"}
               </button>
 
@@ -491,26 +542,32 @@ const parseMeanings = (meaningText) => {
 
               {showContext && (
                 <div className="mt-2 bg-gray-100 p-5 rounded-xl">
-
-              {(!wordData.conversation || wordData.conversation.length === 0) && (
-              <p className="text-lg font-bold text-gray-700 text-center py-4">
-              👀 We’re still hunting for this one in the wild.
-        </p>
-      )}
+                  {(!wordData.conversation ||
+                    wordData.conversation.length === 0) && (
+                    <p className="text-lg font-bold text-gray-700 text-center py-4">
+                      👀 We’re still hunting for this one in the wild.
+                    </p>
+                  )}
                   {wordData.conversation.map((line, i) => (
                     <div key={i} className="mb-4">
                       <div
-  className="text-lg"
-  dangerouslySetInnerHTML={{
-    __html: `— ${line.spanish.replace(/\n/g,"<br>")}`,
-  }}
-/>
-<div
-  className="italic text-gray-600"
-  dangerouslySetInnerHTML={{
-    __html: `— ${line.english.replace(/\n/g,"<br>")}`,
-  }}
-/>
+                        className="text-lg"
+                        dangerouslySetInnerHTML={{
+                          __html: `— ${line.spanish.replace(
+                            /\n/g,
+                            "<br>"
+                          )}`,
+                        }}
+                      />
+                      <div
+                        className="italic text-gray-600"
+                        dangerouslySetInnerHTML={{
+                          __html: `— ${line.english.replace(
+                            /\n/g,
+                            "<br>"
+                          )}`,
+                        }}
+                      />
                     </div>
                   ))}
                 </div>
@@ -528,13 +585,14 @@ const parseMeanings = (meaningText) => {
 
               {showQuiz && (
                 <div className="mt-2 bg-gray-100 p-5 rounded-xl space-y-8">
-
                   {/* Q1 */}
                   <div>
                     <p
-  className="text-lg"
-  dangerouslySetInnerHTML={{ __html: wordData.quiz.q1.question }}
-/>
+                      className="text-lg"
+                      dangerouslySetInnerHTML={{
+                        __html: wordData.quiz.q1.question,
+                      }}
+                    />
                     <div className="mt-2 flex flex-col gap-3">
                       <button
                         onClick={() => handleQuizAnswer(1, true)}
@@ -543,8 +601,8 @@ const parseMeanings = (meaningText) => {
                           locked1 && answer1 === "correct"
                             ? "bg-green-400"
                             : locked1
-                              ? "bg-gray-300"
-                              : "bg-white hover:bg-blue-100"
+                            ? "bg-gray-300"
+                            : "bg-white hover:bg-blue-100"
                         }`}
                       >
                         {wordData.quiz.q1.correct}
@@ -557,8 +615,8 @@ const parseMeanings = (meaningText) => {
                           locked1 && answer1 === "wrong"
                             ? "bg-red-400"
                             : locked1
-                              ? "bg-gray-300"
-                              : "bg-white hover:bg-blue-100"
+                            ? "bg-gray-300"
+                            : "bg-white hover:bg-blue-100"
                         }`}
                       >
                         {wordData.quiz.q1.wrong}
@@ -569,9 +627,11 @@ const parseMeanings = (meaningText) => {
                   {/* Q2 */}
                   <div>
                     <p
-  className="text-lg"
-  dangerouslySetInnerHTML={{ __html: wordData.quiz.q2.question }}
-/>
+                      className="text-lg"
+                      dangerouslySetInnerHTML={{
+                        __html: wordData.quiz.q2.question,
+                      }}
+                    />
                     <div className="mt-2 flex flex-col gap-3">
                       <button
                         onClick={() => handleQuizAnswer(2, false)}
@@ -580,8 +640,8 @@ const parseMeanings = (meaningText) => {
                           locked2 && answer2 === "wrong"
                             ? "bg-red-400"
                             : locked2
-                              ? "bg-gray-300"
-                              : "bg-white hover:bg-blue-100"
+                            ? "bg-gray-300"
+                            : "bg-white hover:bg-blue-100"
                         }`}
                       >
                         {wordData.quiz.q2.wrong}
@@ -594,8 +654,8 @@ const parseMeanings = (meaningText) => {
                           locked2 && answer2 === "correct"
                             ? "bg-green-400"
                             : locked2
-                              ? "bg-gray-300"
-                              : "bg-white hover:bg-blue-100"
+                            ? "bg-gray-300"
+                            : "bg-white hover:bg-blue-100"
                         }`}
                       >
                         {wordData.quiz.q2.correct}
@@ -605,7 +665,6 @@ const parseMeanings = (meaningText) => {
                 </div>
               )}
             </div>
-
           </div>
         </div>
 

@@ -1,13 +1,21 @@
 /* eslint-disable react/no-unescaped-entities */
 import { useEffect, useState } from "react";
 import Head from "next/head";
-import { useSession, useSupabaseClient } from "@supabase/auth-helpers-react";
+import { useSession } from "next-auth/react";
+import { createClient } from "@supabase/supabase-js";
+import { useRouter } from "next/router";
 import ChallengesSection from "../components/ChallengesSection";
 import ForumSection from "../components/ForumSection";
 
 export default function CommunityPage() {
-  const supabase = useSupabaseClient();
-  const session = useSession();
+  const { data: session, status } = useSession();
+  const router = useRouter();
+
+  // Plain Supabase client (no auth helpers)
+  const supabase = createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+  );
 
   const [profile, setProfile] = useState(null);
   const [leagueData, setLeagueData] = useState(null);
@@ -23,6 +31,37 @@ export default function CommunityPage() {
   const [rewards, setRewards] = useState([]);
   const [notifications, setNotifications] = useState([]);
   const [leagueHistory, setLeagueHistory] = useState([]);
+
+  // UNLOCKS
+  const [survivalGuideUnlocked, setSurvivalGuideUnlocked] = useState(false);
+
+  useEffect(() => {
+    try {
+      const stored = localStorage.getItem("mxv_survivalGuideUnlocked");
+      setSurvivalGuideUnlocked(stored === "true");
+    } catch (e) {
+      // ignore
+    }
+  }, []);
+
+  const handleSurvivalGuideClick = () => {
+    // first click unlocks; second click navigates
+    if (!survivalGuideUnlocked) {
+      setSurvivalGuideUnlocked(true);
+      try {
+        localStorage.setItem("mxv_survivalGuideUnlocked", "true");
+      } catch (e) {
+        // ignore
+      }
+      return;
+    }
+    router.push("/survival-guide");
+  };
+
+  const handleFounderBadgeClick = () => {
+    // placeholder route until badge section exists
+    router.push("/profile");
+  };
 
   // Calculate days until Sunday reset
   useEffect(() => {
@@ -69,7 +108,7 @@ export default function CommunityPage() {
         const { data: profileData } = await supabase
           .from("profiles")
           .select("*")
-          .eq("id", session.user.id)
+          .eq("email", session.user.email)
           .single();
 
         if (profileData) {
@@ -227,7 +266,8 @@ export default function CommunityPage() {
     }
   };
 
-  if (loading) {
+  // Unified loading guard (auth loading OR community data loading)
+  if (status === "loading" || loading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
@@ -291,6 +331,38 @@ export default function CommunityPage() {
                   <p className="text-xs text-gray-600">This Week</p>
                 </div>
               </div>
+            </div>
+
+            {/* BADGES ROW */}
+            <div className="mt-5 pt-5 border-t">
+              <div className="flex items-center justify-between mb-3">
+                <h3 className="font-bold text-gray-800">Badges</h3>
+                <button
+                  onClick={() => router.push("/profile")}
+                  className="text-sm font-semibold text-green-700 hover:text-green-800 transition-colors"
+                >
+                  View all →
+                </button>
+              </div>
+
+              {achievements.length > 0 ? (
+                <div className="flex items-center gap-3 overflow-x-auto pb-2 pr-1">
+                  {achievements.slice(0, 6).map((ach) => (
+                    <div
+                      key={ach.id}
+                      title={ach.achievements?.name || "Badge"}
+                      className="flex-shrink-0 w-12 h-12 rounded-xl bg-gray-50 border border-gray-200 flex items-center justify-center cursor-pointer hover:scale-[1.06] hover:shadow-sm transition-all"
+                      onClick={() => router.push("/profile")}
+                    >
+                      <span className="text-2xl">{ach.achievements?.icon || "🏅"}</span>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-sm text-gray-600">
+                  No badges yet. Win leagues, help in the forum, and keep learning to unlock them.
+                </p>
+              )}
             </div>
           </div>
         )}
@@ -406,7 +478,10 @@ export default function CommunityPage() {
                                   : `#${position}`}
                               </div>
                               <img
-                                src={participant.profiles?.avatar_url || "/images/default-avatar-male.png"}
+                                src={
+                                  participant.profiles?.avatar_url ||
+                                  "/images/default-avatar-male.png"
+                                }
                                 alt="Avatar"
                                 className="w-10 h-10 rounded-full"
                               />
@@ -503,7 +578,9 @@ export default function CommunityPage() {
 
                   {/* Achievements Section */}
                   <div>
-                    <h3 className="font-bold text-lg mb-4">Achievements ({achievements.length})</h3>
+                    <h3 className="font-bold text-lg mb-4">
+                      Achievements ({achievements.length})
+                    </h3>
                     {achievements.length > 0 ? (
                       <div className="grid grid-cols-2 gap-3">
                         {achievements.map((ach) => (
@@ -536,18 +613,14 @@ export default function CommunityPage() {
                           .map((reward) => (
                             <button
                               key={reward.id}
-                              onClick={() =>
-                                handleReward(reward.id, reward.reward_types.type)
-                              }
+                              onClick={() => handleReward(reward.id, reward.reward_types.type)}
                               className="w-full p-4 bg-gradient-to-r from-purple-500 to-pink-500 text-white rounded-lg hover:from-purple-600 hover:to-pink-600 transition-all transform hover:scale-[1.02]"
                             >
                               <div className="flex items-center justify-between">
                                 <div className="flex items-center gap-3">
                                   <span className="text-2xl">{reward.reward_types.icon}</span>
                                   <div className="text-left">
-                                    <p className="font-semibold">
-                                      {reward.reward_types.name}
-                                    </p>
+                                    <p className="font-semibold">{reward.reward_types.name}</p>
                                     <p className="text-sm opacity-90">
                                       {reward.reward_types.description}
                                     </p>
@@ -559,9 +632,7 @@ export default function CommunityPage() {
                           ))}
                       </div>
                     ) : (
-                      <p className="text-gray-600">
-                        No active rewards. Win leagues to earn rewards!
-                      </p>
+                      <p className="text-gray-600">No active rewards. Win leagues to earn rewards!</p>
                     )}
                   </div>
 
@@ -624,26 +695,18 @@ export default function CommunityPage() {
                               ? "bg-gray-50"
                               : "bg-blue-50 border-l-4 border-blue-500"
                           }`}
-                          onClick={() =>
-                            !notification.read && markAsRead(notification.id)
-                          }
+                          onClick={() => !notification.read && markAsRead(notification.id)}
                         >
                           <h4 className="font-semibold">{notification.title}</h4>
-                          <p className="text-sm text-gray-600 mt-1">
-                            {notification.message}
-                          </p>
+                          <p className="text-sm text-gray-600 mt-1">{notification.message}</p>
                           <p className="text-xs text-gray-400 mt-2">
-                            {new Date(
-                              notification.created_at
-                            ).toLocaleDateString()}
+                            {new Date(notification.created_at).toLocaleDateString()}
                           </p>
                         </div>
                       ))}
                     </div>
                   ) : (
-                    <p className="text-center text-gray-600 py-8">
-                      No notifications yet
-                    </p>
+                    <p className="text-center text-gray-600 py-8">No notifications yet</p>
                   )}
                 </div>
               )}
@@ -670,6 +733,129 @@ export default function CommunityPage() {
             </button>
           </div>
         )}
+
+        {/* ================= QUESTS / MISSIONS ================= */}
+        <div className="bg-white rounded-xl shadow-md p-6 mb-8">
+          <h2 className="text-2xl font-bold text-green-700 text-center mb-6">🎴 Story Missions</h2>
+
+          <div className="flex justify-center gap-6">
+            {/* CARD 1 – clickable */}
+            <a
+              href="/quests"
+              className="block w-[200px] aspect-[3/5] border-4 border-black rounded-md bg-[#6CC6FF] overflow-hidden cursor-pointer animate-questPulse hover:scale-[1.05] transition"
+            >
+              <div className="h-[70%] flex items-center justify-center text-6xl">🌮</div>
+              <div className="h-[30%] bg-white border-t-4 border-black flex items-center justify-center">
+                <span
+                  className="font-[IM_Fell_English_SC] text-[16px] uppercase text-center tracking-wider"
+                  style={{ transform: "scaleY(1.15)" }}
+                >
+                  THE INHERITANCE
+                  <br />
+                  MYSTERY
+                </span>
+              </div>
+              <span className="absolute top-1 left-1 text-sm bg-white border px-1">01</span>
+            </a>
+
+            {/* CARD 2 – locked */}
+            <div className="relative w-[200px] aspect-[3/5] border-4 border-black rounded-md bg-[#F9E24C] overflow-hidden opacity-40">
+              <div className="h-[70%] flex items-center justify-center text-6xl">📺</div>
+              <div className="h-[30%] bg-white border-t-4 border-black flex items-center justify-center">
+                <span
+                  className="font-[IM_Fell_English_SC] text-[16px] uppercase text-center tracking-wider"
+                  style={{ transform: "scaleY(1.15)" }}
+                >
+                  THE TELENOVELA
+                  <br />
+                  BUILDING
+                </span>
+              </div>
+              <span className="absolute top-1 left-1 text-sm bg-white border px-1">02</span>
+              <div className="absolute inset-0 flex items-center justify-center text-5xl text-black/80">
+                🔒
+              </div>
+            </div>
+
+            {/* CARD 3 – locked */}
+            <div className="relative w-[200px] aspect-[3/5] border-4 border-black rounded-md bg-[#FFB3DD] overflow-hidden opacity-40">
+              <div className="h-[70%] flex items-center justify-center text-6xl">🎨</div>
+              <div className="h-[30%] bg-white border-t-4 border-black flex items-center justify-center">
+                <span
+                  className="font-[IM_Fell_English_SC] text-[16px] uppercase text-center tracking-wider"
+                  style={{ transform: "scaleY(1.15)" }}
+                >
+                  THE ART HEIST
+                  <br />
+                  SETUP
+                </span>
+              </div>
+              <span className="absolute top-1 left-1 text-sm bg-white border px-1">03</span>
+              <div className="absolute inset-0 flex items-center justify-center text-5xl text-black/80">
+                🔒
+              </div>
+            </div>
+          </div>
+
+          <p className="text-center text-gray-600 text-sm mt-4">
+            Complete missions to unlock more adventures…
+          </p>
+
+          {/* ================= UNLOCKS ================= */}
+          <div className="mt-6 pt-6 border-t">
+            <h3 className="text-xl font-bold text-center text-gray-800 mb-4">🔓 Unlocks</h3>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              {/* Survival Guide Unlock */}
+              <button
+                onClick={handleSurvivalGuideClick}
+                title={survivalGuideUnlocked ? "Click to open Survival Guide" : "Click to unlock"}
+                className={`w-full text-left rounded-xl border-2 p-4 transition-all cursor-pointer hover:shadow-md hover:scale-[1.01] ${
+                  survivalGuideUnlocked ? "bg-green-50 border-green-300" : "bg-gray-50 border-gray-200"
+                }`}
+              >
+                <div className="flex items-start justify-between gap-3">
+                  <div className="flex items-start gap-3">
+                    <div className="text-2xl mt-[2px]">📘</div>
+                    <div>
+                      <p className="font-bold text-base">Mexican Spanish Survival Guide</p>
+                      <p className="text-sm text-gray-600 mt-1">
+                        {survivalGuideUnlocked ? "Unlocked — click to open" : "Click to unlock"}
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="text-xl">{survivalGuideUnlocked ? "✅" : "🔒"}</div>
+                </div>
+              </button>
+
+              {/* Founder Badge */}
+              <button
+                onClick={handleFounderBadgeClick}
+                title="Go to your profile (badge section coming soon)"
+                className="w-full text-left rounded-xl border-2 p-4 transition-all cursor-pointer hover:shadow-md hover:scale-[1.01] bg-yellow-50 border-yellow-300"
+              >
+                <div className="flex items-start justify-between gap-3">
+                  <div className="flex items-start gap-3">
+                    <div className="text-2xl mt-[2px]">🏅</div>
+                    <div>
+                      <p className="font-bold text-base">MexiVerse Founder Badge</p>
+                      <p className="text-sm text-gray-600 mt-1">
+                        View on your profile (badge UI coming soon)
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="text-xl">→</div>
+                </div>
+              </button>
+            </div>
+
+            <p className="text-center text-xs text-gray-500 mt-4">
+              Unlocks are saved locally for now (localStorage).
+            </p>
+          </div>
+        </div>
 
         {/* FORUM SECTION */}
         <ForumSection wordSlug={null} isMainForum={true} />

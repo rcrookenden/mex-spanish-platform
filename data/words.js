@@ -46,13 +46,13 @@ const words = [
   partOfSpeech: "adj",
 
   meaning: `👉 <strong>cool / awesome</strong><br>
-💡 <strong>Chido</strong> is the go-to Mexican way to say something is cool, awesome, fun, etc.<br>
-Just keep it far away from formal settings, lol.
+💡 <strong>Chido</strong> is the go-to Mexican way (along with <strong>padre</strong>) to say something's cool, awesome, fun, etc.<br>
+Just keep it far away from formal settings and you'll be gold!
   `,
 
   tags: ["A2 (¡Vas bien!)", "Used EVERYWHERE 🇲🇽", "Slang 🌶️"],
 
-  tone: `✅ <strong>VERY</strong> informal!<br>
+  tone: `✅ Informal but not offensive!<br>
   ✅ Positive, friendly, upbeat vibe.<br>
   ✅ Perfect for casual speech with friends.<br>
   ❌ <strong>NOT</strong> recommended in formal or professional contexts.
